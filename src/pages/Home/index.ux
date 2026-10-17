@@ -1,0 +1,1160 @@
+<template>
+  <div class="app">
+    <div class="safe">
+      <block if="{{view === 'intro'}}">
+        <div class="intro">
+          <div class="intro-head">
+            <div class="brand-mark">
+              <text class="brand-heart">♡</text>
+            </div>
+            <text class="eyebrow">LATE NIGHT TALK</text>
+          </div>
+
+          <text class="title">晚风对话</text>
+          <text class="subtitle">选什么，就聊什么</text>
+
+          <div class="background-card">
+            <text class="background-label">背景</text>
+            <text class="background-text">{{background}}</text>
+          </div>
+
+          <div class="intro-space"></div>
+
+          <div class="primary-button" onclick="openModes">
+            <text class="primary-title">进入游戏</text>
+            <text class="primary-sub">选择今晚的关系</text>
+          </div>
+          <text class="intro-foot">52,150 句固定文本 · 每天自动随机场景</text>
+        </div>
+      </block>
+
+      <block elif="{{view === 'modes'}}">
+        <div class="mode">
+          <text class="mode-eyebrow">CHOOSE YOUR STORY</text>
+          <text class="mode-title">今晚，想怎么开始？</text>
+          <text class="mode-sub">两种入口，每天自动进入一个随机场景。</text>
+
+          <div class="mode-card romance-card" onclick="startRomance">
+            <div class="mode-card-top">
+              <text class="mode-tag">直接恋爱</text>
+              <text class="mode-arrow">›</text>
+            </div>
+            <text class="mode-card-title">和知夏继续</text>
+            <text class="mode-card-sub">默认对象：林知夏 · 已经恋爱</text>
+          </div>
+
+          <div class="mode-card chase-card" onclick="openTargets">
+            <div class="mode-card-top">
+              <text class="mode-tag chase-tag">追求他人</text>
+              <text class="mode-arrow">›</text>
+            </div>
+            <text class="mode-card-title">换一个人，从头靠近</text>
+            <text class="mode-card-sub">从三位角色中选择 · 进入追求状态</text>
+          </div>
+
+          <div class="mode-back" onclick="backIntro">
+            <text class="mode-back-text">返回背景</text>
+          </div>
+        </div>
+      </block>
+
+      <block elif="{{view === 'targets'}}">
+        <div class="mode">
+          <text class="mode-eyebrow">PURSUE SOMEONE</text>
+          <text class="mode-title">你想追求谁？</text>
+          <text class="mode-sub">从三位中选择一位，今晚开始靠近。</text>
+
+          <div class="target-option" onclick="startChase('苏遥')">
+            <div class="target-avatar target-avatar-a">
+              <text class="target-avatar-text">苏</text>
+            </div>
+            <div class="target-copy">
+              <text class="target-name">苏遥</text>
+              <text class="target-desc">安静慢热，喜欢雨天</text>
+            </div>
+          </div>
+
+          <div class="target-option" onclick="startChase('江晚')">
+            <div class="target-avatar target-avatar-b">
+              <text class="target-avatar-text">江</text>
+            </div>
+            <div class="target-copy">
+              <text class="target-name">江晚</text>
+              <text class="target-desc">直率爱笑，说话不绕弯</text>
+            </div>
+          </div>
+
+          <div class="target-option" onclick="startChase('顾晴')">
+            <div class="target-avatar target-avatar-c">
+              <text class="target-avatar-text">顾</text>
+            </div>
+            <div class="target-copy">
+              <text class="target-name">顾晴</text>
+              <text class="target-desc">温柔细心，总先照顾别人</text>
+            </div>
+          </div>
+
+          <div class="intro-space"></div>
+          <div class="mode-back" onclick="backModes">
+            <text class="mode-back-text">返回模式选择</text>
+          </div>
+        </div>
+      </block>
+
+      <block elif="{{view === 'chat'}}">
+        <div class="chat">
+          <div class="chat-head">
+            <div class="avatar">
+              <text class="avatar-text">{{avatarText}}</text>
+            </div>
+            <div class="identity">
+              <text class="name">{{characterName}}</text>
+              <text class="state">{{statusLine}}</text>
+            </div>
+            <text class="counter">{{counter}}</text>
+          </div>
+
+          <scroll class="chat-log" scroll-y="true" scroll-bottom="{{scrollBottom}}">
+            <div class="message-list">
+              <div class="message-round" for="{{(i, round) in chatRounds}}">
+                <block if="{{round.you}}">
+                  <div class="you-row">
+                    <div class="you-bubble">
+                      <text class="you-text">{{round.you}}</text>
+                    </div>
+                  </div>
+                </block>
+                <div class="her-row">
+                  <div class="her-bubble">
+                    <text class="her-text">{{round.her}}</text>
+                    <text class="transition-text" if="{{round.note}}">{{round.note}}</text>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </scroll>
+
+          <block if="{{loading}}">
+            <div class="loading-card">
+              <text class="loading-title">{{loadingText}}</text>
+              <text class="loading-sub" if="{{loadError}}">网络正常时可点按下方重试</text>
+            </div>
+            <div class="primary-button compact" if="{{loadError}}" onclick="retryLoad">
+              <text class="primary-title">重试</text>
+            </div>
+          </block>
+
+          <block elif="{{dayComplete}}">
+            <div class="day-complete">
+              <text class="day-complete-title">{{daySummary}}</text>
+              <div class="primary-button compact" onclick="nextDay">
+                <text class="primary-title">进入第 {{nextDay}} 天</text>
+                <text class="primary-sub">重新随机场景，切换概率重置</text>
+              </div>
+            </div>
+          </block>
+
+          <block elif="{{!dayComplete}}">
+            <div class="action-list">
+              <div class="action-choice" for="{{(i, item) in actions}}" onclick="chooseAction(i)">
+                <div class="action-key">
+                  <text class="action-key-text">{{item.key}}</text>
+                </div>
+                <div class="action-copy">
+                  <text class="action-tag">{{item.tag}}</text>
+                  <text class="action-text">{{item.label}}</text>
+                </div>
+              </div>
+            </div>
+          </block>
+        </div>
+      </block>
+    </div>
+  </div>
+</template>
+
+<style>
+  .app {
+    width: 432px;
+    height: 514px;
+    background-color: #121018;
+    flex-direction: column;
+  }
+
+  .safe {
+    width: 376px;
+    height: 456px;
+    margin: 28px 28px 30px 28px;
+    flex-direction: column;
+  }
+
+  .intro {
+    flex: 1;
+    flex-direction: column;
+  }
+
+  .intro-head {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .brand-mark {
+    width: 46px;
+    height: 46px;
+    border-radius: 23px;
+    background-color: #ff8fa3;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .brand-heart {
+    color: #2a1620;
+    font-size: 28px;
+  }
+
+  .eyebrow {
+    margin-left: 13px;
+    color: #b8a9be;
+    font-size: 13px;
+  }
+
+  .title {
+    margin-top: 24px;
+    color: #fff7f8;
+    font-size: 48px;
+  }
+
+  .subtitle {
+    margin-top: 4px;
+    color: #ffb3bf;
+    font-size: 21px;
+  }
+
+  .background-card {
+    margin-top: 20px;
+    padding: 18px 19px;
+    border-radius: 20px;
+    background-color: #211b28;
+    border-left-width: 4px;
+    border-left-color: #ff8fa3;
+  }
+
+  .background-label {
+    color: #ff8fa3;
+    font-size: 14px;
+  }
+
+  .background-text {
+    margin-top: 8px;
+    color: #e8dce9;
+    font-size: 20px;
+    line-height: 30px;
+    lines: 5;
+  }
+
+  .intro-space {
+    flex: 1;
+  }
+
+  .primary-button {
+    height: 66px;
+    border-radius: 20px;
+    background-color: #ff8fa3;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+
+  .primary-button.compact {
+    margin-top: 12px;
+  }
+
+  .primary-title {
+    color: #2a1620;
+    font-size: 24px;
+  }
+
+  .primary-sub {
+    margin-top: 2px;
+    color: #6b3542;
+    font-size: 13px;
+  }
+
+  .intro-foot {
+    margin-top: 12px;
+    color: #7f7286;
+    font-size: 14px;
+    text-align: center;
+  }
+
+  .mode {
+    flex: 1;
+    flex-direction: column;
+  }
+
+  .mode-eyebrow {
+    color: #93869a;
+    font-size: 12px;
+  }
+
+  .mode-title {
+    margin-top: 12px;
+    color: #fff7f8;
+    font-size: 36px;
+    lines: 2;
+  }
+
+  .mode-sub {
+    margin-top: 8px;
+    color: #b8a9be;
+    font-size: 16px;
+    lines: 2;
+  }
+
+  .mode-card {
+    margin-top: 16px;
+    padding: 16px 17px;
+    border-radius: 20px;
+    flex-direction: column;
+  }
+
+  .romance-card {
+    background-color: #ff8fa3;
+    border-left-width: 4px;
+    border-left-color: #ffd5dc;
+  }
+
+  .chase-card {
+    background-color: #251d2c;
+    border-left-width: 4px;
+    border-left-color: #8f6cff;
+  }
+
+  .mode-card-top {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .mode-tag {
+    color: #6b3542;
+    font-size: 13px;
+  }
+
+  .chase-tag {
+    color: #b9a8ff;
+  }
+
+  .mode-arrow {
+    color: #2a1620;
+    font-size: 26px;
+  }
+
+  .mode-card-title {
+    margin-top: 7px;
+    color: #2a1620;
+    font-size: 23px;
+  }
+
+  .mode-card-sub {
+    margin-top: 3px;
+    color: #6b3542;
+    font-size: 13px;
+  }
+
+  .chase-card .mode-card-title {
+    color: #f4ebf4;
+  }
+
+  .chase-card .mode-card-sub {
+    color: #93869a;
+  }
+
+  .chase-card .mode-arrow {
+    color: #b9a8ff;
+  }
+
+  .mode-back {
+    margin-top: 14px;
+    height: 34px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mode-back-text {
+    color: #7f7286;
+    font-size: 13px;
+  }
+
+  .target-option {
+    height: 78px;
+    margin-top: 12px;
+    padding: 0 15px;
+    border-radius: 18px;
+    background-color: #211b28;
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .target-avatar {
+    width: 46px;
+    height: 46px;
+    border-radius: 23px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .target-avatar-a {
+    background-color: #36465d;
+  }
+
+  .target-avatar-b {
+    background-color: #593f50;
+  }
+
+  .target-avatar-c {
+    background-color: #3f554b;
+  }
+
+  .target-avatar-text {
+    color: #fff7f8;
+    font-size: 20px;
+  }
+
+  .target-copy {
+    flex: 1;
+    margin-left: 13px;
+    flex-direction: column;
+  }
+
+  .target-name {
+    color: #f4ebf4;
+    font-size: 21px;
+  }
+
+  .target-desc {
+    margin-top: 3px;
+    color: #93869a;
+    font-size: 13px;
+  }
+
+  .chat {
+    flex: 1;
+    flex-direction: column;
+  }
+
+  .chat-head {
+    height: 52px;
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 24px;
+    background-color: #302538;
+    border-width: 2px;
+    border-color: #ff8fa3;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .avatar-text {
+    color: #ffd3d9;
+    font-size: 21px;
+  }
+
+  .identity {
+    flex: 1;
+    margin-left: 12px;
+    flex-direction: column;
+  }
+
+  .name {
+    color: #fff7f8;
+    font-size: 20px;
+  }
+
+  .state {
+    margin-top: 2px;
+    color: #93869a;
+    font-size: 13px;
+    lines: 1;
+  }
+
+  .counter {
+    color: #93869a;
+    font-size: 14px;
+  }
+
+  .chat-log {
+    width: 100%;
+    height: 210px;
+  }
+
+  .message-list {
+    flex-direction: column;
+    padding: 8px 0 10px 0;
+  }
+
+  .message-round {
+    flex-direction: column;
+  }
+
+  .you-row {
+    flex-direction: row;
+    justify-content: flex-end;
+    margin-bottom: 8px;
+  }
+
+  .you-bubble {
+    max-width: 310px;
+    padding: 9px 13px;
+    border-radius: 16px;
+    background-color: #ff8fa3;
+  }
+
+  .you-text {
+    color: #2a1620;
+    font-size: 16px;
+    lines: 2;
+  }
+
+  .her-row {
+    flex-direction: row;
+    justify-content: flex-start;
+  }
+
+  .her-bubble {
+    max-width: 356px;
+    padding: 14px 16px;
+    border-radius: 18px;
+    background-color: #251d2c;
+    border-left-width: 4px;
+    border-left-color: #ff8fa3;
+  }
+
+  .her-text {
+    color: #f4ebf4;
+    font-size: 18px;
+    line-height: 26px;
+    lines: 4;
+  }
+
+  .transition-text {
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top-width: 1px;
+    border-top-color: #4a3c52;
+    color: #ffb3bf;
+    font-size: 14px;
+    line-height: 19px;
+    lines: 3;
+  }
+
+  .loading-card {
+    height: 96px;
+    border-radius: 18px;
+    background-color: #211b28;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+
+  .loading-title {
+    color: #f4ebf4;
+    font-size: 20px;
+  }
+
+  .loading-sub {
+    margin-top: 6px;
+    color: #93869a;
+    font-size: 14px;
+  }
+
+  .action-list {
+    flex-direction: column;
+  }
+
+  .action-choice {
+    height: 56px;
+    margin-top: 7px;
+    padding: 0 13px;
+    border-radius: 17px;
+    background-color: #f7ecef;
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .action-key {
+    width: 32px;
+    height: 32px;
+    border-radius: 16px;
+    background-color: #ffd5dc;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .action-key-text {
+    color: #8b4656;
+    font-size: 14px;
+  }
+
+  .action-copy {
+    flex: 1;
+    margin-left: 11px;
+    flex-direction: column;
+  }
+
+  .action-tag {
+    color: #a5707d;
+    font-size: 11px;
+  }
+
+  .action-text {
+    margin-top: 1px;
+    color: #2a1620;
+    font-size: 18px;
+    lines: 1;
+  }
+
+  .day-complete {
+    flex-direction: column;
+    padding: 14px 16px 16px 16px;
+    border-radius: 18px;
+    background-color: #211b28;
+  }
+
+  .day-complete-title {
+    color: #f4ebf4;
+    font-size: 20px;
+    text-align: center;
+    lines: 2;
+  }
+</style>
+
+<script>
+  import STORY from '../../data/story_meta.js'
+  import SCENE_COMPRESSED from '../../data/scene_compressed.js'
+  import LZString from '../../utils/lz-string.js'
+
+  const BACKGROUND = '你认识一个很在意的人，已经三个月。今晚一起加班后，你们在便利店门口遇到大雨。TA站在你旁边，手里只有一杯热咖啡。'
+  const ACTION_BY_ID = {}
+  const HOTEL_ACTION_BY_ID = {}
+  let CURRENT_SCENE = null
+  let HOTEL_DATA = null
+
+  for (let i = 0; i < STORY.actions.length; i++) {
+    ACTION_BY_ID[STORY.actions[i].id] = STORY.actions[i]
+  }
+  for (let i = 0; i < STORY.hotelActions.length; i++) {
+    HOTEL_ACTION_BY_ID[STORY.hotelActions[i].id] = STORY.hotelActions[i]
+  }
+
+  const START_ACTIONS = ['a01', 'a02', 'a03']
+  const NIGHT_START_HOME = ['a02', 'a04', 'a15']
+  const NIGHT_START_CALL = ['a04', 'a12', 'a29']
+  const NEXT_ACTIONS = {
+    a01: ['a02', 'a03', 'a07'],
+    a02: ['a04', 'a06', 'a12'],
+    a03: ['a08', 'a09', 'a21'],
+    a04: ['a05', 'a12', 'a16'],
+    a05: ['a06', 'a10', 'a13'],
+    a06: ['a08', 'a15', 'a21'],
+    a07: ['a08', 'a11', 'a25'],
+    a08: ['a11', 'a19', 'a13'],
+    a09: ['a05', 'a17', 'a21'],
+    a10: ['a05', 'a13', 'a17'],
+    a11: ['a13', 'a19', 'a21'],
+    a12: ['a04', 'a15', 'a16'],
+    a13: ['a08', 'a19', 'a21'],
+    a14: ['a08', 'a13', 'a21'],
+    a15: ['a19', 'a25', 'a27'],
+    a16: ['a19', 'a25', 'a27'],
+    a17: ['a18', 'a23', 'a24'],
+    a18: ['a17', 'a21', 'a13'],
+    a19: ['a20', 'a25', 'a27'],
+    a20: ['a11', 'a16', 'a25'],
+    a21: ['a11', 'a18', 'a19'],
+    a22: ['a23', 'a25', 'a26'],
+    a23: ['a25', 'a29', 'a30'],
+    a24: ['a28', 'a29', 'a30'],
+    a25: ['a26', 'a27', 'a29'],
+    a26: ['a19', 'a27', 'a30'],
+    a27: ['a19', 'a25', 'a28'],
+    a28: ['a27', 'a29', 'a30'],
+    a29: ['a26', 'a28', 'a30'],
+    a30: ['a27', 'a28', 'a29']
+  }
+
+  function randomLine(source) {
+    const lines = Array.isArray(source) ? source : String(source).split('\n')
+    return lines[Math.floor(Math.random() * lines.length)]
+  }
+
+  function splitLines(text) {
+    const lines = String(text || '').replace(/\r/g, '').split('\n')
+    while (lines.length && lines[lines.length - 1] === '') lines.pop()
+    return lines
+  }
+
+  function sceneInfo(id) {
+    for (let i = 0; i < STORY.scenes.length; i++) {
+      if (STORY.scenes[i].id === id) return STORY.scenes[i]
+    }
+    return null
+  }
+
+  function parseScene(id, text) {
+    const lines = splitLines(text)
+    const layout = STORY.layout
+    const expected = layout.sceneActionCount * layout.scenePoolSize +
+      layout.sceneAmbientSize + layout.sceneTransitionSize
+    if (lines.length < expected) throw new Error('Scene data incomplete: ' + id)
+
+    const pools = {}
+    let cursor = 0
+    for (let i = 0; i < STORY.actions.length; i++) {
+      const actionId = STORY.actions[i].id
+      pools[actionId] = lines.slice(cursor, cursor + layout.scenePoolSize)
+      cursor += layout.scenePoolSize
+    }
+    const ambient = lines.slice(cursor, cursor + layout.sceneAmbientSize).join('\n')
+    cursor += layout.sceneAmbientSize
+    const transitions = lines.slice(cursor, cursor + layout.sceneTransitionSize).join('\n')
+    const info = sceneInfo(id)
+
+    return {
+      id: id,
+      name: info ? info.name : id,
+      pools: pools,
+      ambient: ambient,
+      transitions: transitions
+    }
+  }
+
+  function parseHotel(text) {
+    const lines = splitLines(text)
+    const layout = STORY.layout
+    const expected = STORY.hotelActions.length * layout.hotelPoolSize + layout.hotelAmbientSize
+    if (lines.length < expected) throw new Error('Hotel data incomplete')
+
+    const pools = {}
+    let cursor = 0
+    for (let i = 0; i < STORY.hotelActions.length; i++) {
+      const actionId = STORY.hotelActions[i].id
+      pools[actionId] = lines.slice(cursor, cursor + layout.hotelPoolSize)
+      cursor += layout.hotelPoolSize
+    }
+    const ambient = lines.slice(cursor, cursor + layout.hotelAmbientSize).join('\n')
+    return { pools: pools, ambient: ambient }
+  }
+
+  function decodeScene(id) {
+    const compressed = SCENE_COMPRESSED[id]
+    if (!compressed) return null
+    const text = LZString.decompressFromEncodedURIComponent(compressed)
+    if (!text) return null
+    return parseScene(id, text)
+  }
+
+  function decodeHotel() {
+    const compressed = SCENE_COMPRESSED.hotel
+    if (!compressed) return null
+    const text = LZString.decompressFromEncodedURIComponent(compressed)
+    if (!text) return null
+    return parseHotel(text)
+  }
+
+  export default {
+    data: {
+      view: 'intro',
+      background: BACKGROUND,
+      characterName: '林知夏',
+      avatarText: '夏',
+      relationshipLabel: '恋爱中',
+      day: 1,
+      nextDay: 2,
+      sceneId: '',
+      sceneLabel: '',
+      phase: 'main',
+      round: 1,
+      maxRounds: 10,
+      counter: '1 / 10',
+      transitionChance: 0.10,
+      transitionsUsed: 0,
+      nightKind: '',
+      nightSourceId: '',
+      nightLabel: '',
+      currentAction: '',
+      statusLine: '',
+      chatRounds: [],
+      scrollBottom: 0,
+      actions: [],
+      usedKeys: [],
+      dayComplete: false,
+      daySummary: '',
+      loading: false,
+      loadingText: '正在加载场景…',
+      loadError: false,
+      pendingDay: 1,
+      pendingPhase: 'day'
+    },
+
+    onInit() {
+      this.view = 'intro'
+    },
+
+    openModes() {
+      this.view = 'modes'
+    },
+
+    backIntro() {
+      this.view = 'intro'
+    },
+
+    openTargets() {
+      this.view = 'targets'
+    },
+
+    backModes() {
+      this.view = 'modes'
+    },
+
+    startRomance() {
+      this.characterName = '林知夏'
+      this.avatarText = '夏'
+      this.relationshipLabel = '恋爱中'
+      this.startDay(1)
+    },
+
+    startChase(name) {
+      this.characterName = name
+      this.avatarText = name.slice(0, 1)
+      this.relationshipLabel = '正在追求'
+      this.startDay(1)
+    },
+
+    startDay(dayNumber) {
+      if (this.loading && !this.loadError) return
+      const target = STORY.scenes[Math.floor(Math.random() * STORY.scenes.length)]
+      this.view = 'chat'
+      this.loading = true
+      this.loadingText = '正在加载场景…'
+      this.loadError = false
+      this.pendingDay = dayNumber
+      this.pendingPhase = 'day'
+      this.statusLine = '正在加载场景…'
+      this.actions = []
+
+      try {
+        const scene = decodeScene(target.id)
+        if (!scene) throw new Error('Missing scene: ' + target.id)
+        this.applyDay(dayNumber, scene)
+      } catch (error) {
+        this.loading = false
+        this.loadError = true
+        this.loadingText = '场景加载失败'
+      }
+    },
+
+    applyDay(dayNumber, scene) {
+      CURRENT_SCENE = scene
+      this.day = dayNumber
+      this.nextDay = dayNumber + 1
+      this.sceneId = scene.id
+      this.sceneLabel = scene.name
+      this.phase = 'main'
+      this.round = 1
+      this.maxRounds = 10
+      this.counter = '1 / 10'
+      this.transitionChance = 0.10
+      this.transitionsUsed = 0
+      this.nightKind = ''
+      this.nightSourceId = ''
+      this.nightLabel = ''
+      this.currentAction = ''
+      this.statusLine = '第' + this.day + '天 · ' + this.sceneLabel
+      this.chatRounds = []
+      this.scrollBottom = 0
+      this.addRound('', randomLine(scene.ambient), '')
+      this.usedKeys = []
+      this.dayComplete = false
+      this.daySummary = ''
+      this.loading = false
+      this.loadError = false
+      this.view = 'chat'
+      this.buildActions()
+    },
+
+    buildActions() {
+      if (this.dayComplete || this.loading) return
+      const ids = this.actionIdsForRound()
+      const keys = ['A', 'B', 'C']
+      this.actions = ids.map(function (id, index) {
+        const action = this.phase === 'night' && this.nightKind === 'hotel'
+          ? HOTEL_ACTION_BY_ID[id]
+          : ACTION_BY_ID[id]
+        return {
+          key: keys[index],
+          id: id,
+          label: action ? action.label : id,
+          tag: this.phase === 'night' ? '夜间' : '第' + this.round + '轮'
+        }
+      }, this)
+    },
+
+    actionIdsForRound() {
+      if (this.phase === 'night') {
+        if (this.nightKind === 'hotel') {
+          const start = (this.round - 1) * 3
+          return STORY.hotelActions.slice(start, start + 3).map(function (item) { return item.id })
+        }
+        if (this.round === 1) {
+          return this.nightKind === 'call' ? NIGHT_START_CALL : NIGHT_START_HOME
+        }
+        return NEXT_ACTIONS[this.currentAction] || NIGHT_START_HOME
+      }
+      if (this.round === 1) return START_ACTIONS
+      return NEXT_ACTIONS[this.currentAction] || START_ACTIONS
+    },
+
+    chooseAction(index) {
+      if (this.loading) return
+      const picked = this.actions[index]
+      if (!picked || this.dayComplete) return
+
+      this.currentAction = picked.id
+      const response = this.pickLine(picked.id)
+
+      if (this.phase === 'main') {
+        if (this.round >= 10) {
+          this.addRound(picked.label, response, '')
+          this.startNight()
+          return
+        }
+        this.advanceMainRound(picked.label, response)
+        return
+      }
+
+      this.addRound(picked.label, response, '')
+      if (this.round >= 10) {
+        this.finishNight()
+        return
+      }
+      this.round = this.round + 1
+      this.counter = this.round + ' / 10'
+      this.buildActions()
+    },
+
+    advanceMainRound(label, response) {
+      const target = this.pickTransitionTarget()
+      if (!target) {
+        this.finishMainRound(label, response, '')
+        return
+      }
+
+      const self = this
+      this.loading = true
+      this.loadingText = '正在前往' + target.name + '…'
+      this.actions = []
+
+      let scene = null
+      try {
+        scene = decodeScene(target.id)
+      } catch (error) {
+        scene = null
+      }
+      if (!scene) {
+        self.finishMainRound(label, response, '')
+        return
+      }
+
+      CURRENT_SCENE = scene
+      self.sceneId = scene.id
+      self.sceneLabel = scene.name
+      self.transitionsUsed = self.transitionsUsed + 1
+      self.transitionChance = Math.max(
+        STORY.balance.minTransitionChance,
+        self.transitionChance - STORY.balance.transitionStep
+      )
+      self.statusLine = '第' + self.day + '天 · ' + self.sceneLabel
+      self.finishMainRound(label, response, randomLine(scene.transitions))
+    },
+
+    finishMainRound(label, response, transition) {
+      this.loading = false
+      this.addRound(label, response, transition)
+      this.round = this.round + 1
+      this.counter = this.round + ' / 10'
+      this.buildActions()
+    },
+
+    pickTransitionTarget() {
+      if (this.transitionChance <= 0) return null
+      if (Math.random() >= this.transitionChance) return null
+      const currentId = this.sceneId
+      const candidates = STORY.scenes.filter(function (scene) {
+        return scene.id !== currentId
+      })
+      if (!candidates.length) return null
+      return candidates[Math.floor(Math.random() * candidates.length)]
+    },
+
+    pickLine(actionId) {
+      let sourceId = this.sceneId
+      if (this.phase === 'night') sourceId = this.nightSourceId
+
+      let pool
+      if (sourceId === 'hotel') {
+        pool = HOTEL_DATA ? HOTEL_DATA.pools[actionId] : ''
+      } else {
+        pool = CURRENT_SCENE ? CURRENT_SCENE.pools[actionId] : ''
+      }
+      if (!pool && CURRENT_SCENE) pool = CURRENT_SCENE.pools[actionId]
+      if (!pool) return ''
+
+      const lines = Array.isArray(pool) ? pool : String(pool).split('\n')
+      const start = Math.floor(Math.random() * lines.length)
+      let selected = start
+      for (let i = 0; i < lines.length; i++) {
+        const candidate = (start + i) % lines.length
+        const key = sourceId + ':' + actionId + ':' + candidate
+        if (this.usedKeys.indexOf(key) < 0) {
+          selected = candidate
+          this.usedKeys.push(key)
+          break
+        }
+      }
+      return lines[selected]
+    },
+
+    startNight(excludedIds, notice) {
+      const self = this
+      const excluded = excludedIds || []
+      this.loading = true
+      this.loadingText = '正在准备夜晚…'
+      this.loadError = false
+      this.pendingPhase = 'night'
+      this.actions = []
+
+      const available = STORY.night.outcomes.filter(function (item) {
+        return excluded.indexOf(item.id) < 0
+      })
+      let total = 0
+      for (let i = 0; i < available.length; i++) total += available[i].weight
+      let cursor = Math.random() * total
+      let outcome = available[available.length - 1]
+      for (let i = 0; i < available.length; i++) {
+        cursor -= available[i].weight
+        if (cursor <= 0) {
+          outcome = available[i]
+          break
+        }
+      }
+
+      const outcomeLine = randomLine(outcome.lines)
+
+      if (outcome.id === 'parent') {
+        this.loading = false
+        this.phase = 'main'
+        this.addRound('', outcomeLine, '')
+        this.dayComplete = true
+        this.daySummary = '家长要求你回家 · 今天结束'
+        this.actions = []
+        return
+      }
+
+      if (outcome.id === 'your_empty' && Math.random() < 0.4) {
+        const rejection = randomLine(outcome.rejectionLines)
+        this.startNight(['your_empty'], rejection)
+        return
+      }
+
+      const useHotel = outcome.id === 'hotel'
+      this.loadingText = useHotel ? '正在准备酒店…' : '正在准备夜晚…'
+
+      function enterNight(data) {
+        if (useHotel) HOTEL_DATA = data
+        else CURRENT_SCENE = data
+
+        self.phase = 'night'
+        self.round = 1
+        self.maxRounds = 10
+        self.counter = '1 / 10'
+        self.usedKeys = []
+        self.currentAction = ''
+        self.dayComplete = false
+        self.daySummary = ''
+        self.loading = false
+        self.loadError = false
+
+        if (useHotel) {
+          self.nightKind = 'hotel'
+          self.nightSourceId = 'hotel'
+          self.nightLabel = '酒店'
+        } else if (outcome.id === 'her_home') {
+          self.nightKind = 'call'
+          self.nightSourceId = 'home'
+          self.nightLabel = '电话陪伴'
+        } else {
+          self.nightKind = 'home'
+          self.nightSourceId = 'home'
+          self.nightLabel = outcome.id === 'her_empty' ? '她的家' : '你的家'
+        }
+
+        self.statusLine = '第' + self.day + '天 · ' + self.nightLabel + ' · 夜间'
+        self.addRound('', outcomeLine, notice || '')
+        self.buildActions()
+      }
+
+      function failNight() {
+        self.loading = false
+        self.loadError = true
+        self.loadingText = '夜晚加载失败'
+      }
+
+      let nightData = null
+      try {
+        nightData = useHotel ? decodeHotel() : decodeScene('home')
+      } catch (error) {
+        nightData = null
+      }
+      if (nightData) enterNight(nightData)
+      else failNight()
+    },
+
+    retryLoad() {
+      if (!this.loadError) return
+      this.loadError = false
+      if (this.pendingPhase === 'night') this.startNight()
+      else this.startDay(this.pendingDay || this.day)
+    },
+
+    addRound(you, her, note) {
+      const next = this.chatRounds.slice()
+      next.push({ you: you || '', her: her || '', note: note || '' })
+      if (next.length > 10) next.shift()
+      this.chatRounds = next
+      // 先触发一次 scroll-bottom 更新，等新气泡完成布局后再贴到最底部。
+      this.scrollBottom = 1
+      const self = this
+      setTimeout(function () {
+        self.scrollBottom = 0
+      }, 30)
+    },
+
+    finishNight() {
+      this.loading = false
+      this.dayComplete = true
+      this.daySummary = '她太困了，说着说着睡着了 · 夜间结束'
+      this.counter = '10 / 10'
+      this.actions = []
+    },
+
+    nextDay() {
+      this.startDay(this.day + 1)
+    }
+  }
+</script>

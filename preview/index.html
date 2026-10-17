@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>晚风对话 · 52,150 句预览</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #121018;
+      --surface: #211b28;
+      --surface-2: #251d2c;
+      --pink: #ff8fa3;
+      --ink: #2a1620;
+      --text: #fff7f8;
+      --muted: #93869a;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    [hidden] { display: none !important; }
+    html, body { min-height: 100%; margin: 0; }
+    body {
+      display: grid;
+      place-items: center;
+      min-height: 100dvh;
+      padding: 24px;
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 18%, #34283b 0, #1a151f 38%, #0d0b10 100%);
+      color: var(--text);
+      font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+    }
+    button { font: inherit; }
+    .device {
+      width: 442px;
+      height: 524px;
+      padding: 5px;
+      border-radius: 48px;
+      background: linear-gradient(145deg, #34303a, #0b090d 70%);
+      box-shadow: 0 30px 80px rgb(0 0 0 / 55%), inset 0 0 0 1px rgb(255 255 255 / 8%);
+    }
+    .screen {
+      width: 432px;
+      height: 514px;
+      overflow: hidden;
+      border-radius: 43px;
+      background: var(--bg);
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+    }
+    .view { display: none; flex: 1; min-height: 0; flex-direction: column; }
+    .view.active { display: flex; }
+    .intro-head { display: flex; align-items: center; gap: 13px; }
+    .brand-mark {
+      display: grid; place-items: center; width: 46px; height: 46px;
+      border-radius: 50%; background: var(--pink); color: var(--ink);
+      font-size: 29px; line-height: 1;
+    }
+    .eyebrow { color: #b8a9be; font-size: 13px; letter-spacing: .12em; }
+    h1 { margin: 24px 0 0; font-size: 48px; line-height: 1.08; letter-spacing: -.04em; font-weight: 650; }
+    .subtitle { margin-top: 5px; color: #ffb3bf; font-size: 21px; }
+    .background-card { margin-top: 20px; padding: 17px 18px 18px; border-left: 4px solid var(--pink); border-radius: 20px; background: var(--surface); }
+    .background-label { color: var(--pink); font-size: 14px; }
+    .background-text { margin-top: 8px; color: #e8dce9; font-size: 20px; line-height: 1.5; }
+    .intro-space { flex: 1; min-height: 16px; }
+    .primary-button {
+      width: 100%; height: 66px; border: 0; border-radius: 20px; background: var(--pink);
+      color: var(--ink); cursor: pointer; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+    }
+    .primary-title { font-size: 24px; font-weight: 650; }
+    .primary-sub { margin-top: 2px; color: #6b3542; font-size: 13px; }
+    .intro-foot { margin-top: 12px; color: #7f7286; font-size: 14px; text-align: center; }
+    .mode { display: flex; flex: 1; min-height: 0; flex-direction: column; }
+    .mode-eyebrow { color: var(--muted); font-size: 12px; letter-spacing: .1em; }
+    .mode-title { margin-top: 12px; color: var(--text); font-size: 36px; line-height: 1.2; font-weight: 650; letter-spacing: -.03em; }
+    .mode-sub { margin-top: 8px; color: #b8a9be; font-size: 16px; }
+    .mode-card {
+      width: 100%; margin-top: 16px; padding: 16px 17px; border: 0; border-radius: 20px;
+      text-align: left; cursor: pointer; display: flex; flex-direction: column;
+    }
+    .romance-card { background: var(--pink); border-left: 4px solid #ffd5dc; color: var(--ink); }
+    .chase-card { background: var(--surface-2); border-left: 4px solid #8f6cff; color: var(--text); }
+    .mode-card-top { display: flex; align-items: center; justify-content: space-between; }
+    .mode-tag { color: #6b3542; font-size: 13px; }
+    .chase-tag { color: #b9a8ff; }
+    .mode-arrow { font-size: 26px; line-height: 1; }
+    .romance-card .mode-arrow { color: var(--ink); }
+    .chase-card .mode-arrow { color: #b9a8ff; }
+    .mode-card-title { margin-top: 7px; font-size: 23px; line-height: 1.2; font-weight: 650; }
+    .mode-card-sub { margin-top: 4px; color: #6b3542; font-size: 13px; }
+    .chase-card .mode-card-sub { color: var(--muted); }
+    .mode-back {
+      display: grid; place-items: center; height: 34px; margin-top: 14px; border: 0;
+      background: transparent; color: #7f7286; cursor: pointer; font-size: 13px;
+    }
+    .target-option {
+      width: 100%; height: 78px; margin-top: 12px; padding: 0 15px; border: 0;
+      border-radius: 18px; background: var(--surface); color: var(--text); cursor: pointer;
+      display: flex; align-items: center; text-align: left;
+    }
+    .target-avatar { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 50%; color: #fff7f8; font-size: 20px; }
+    .target-avatar-a { background: #36465d; }
+    .target-avatar-b { background: #593f50; }
+    .target-avatar-c { background: #3f554b; }
+    .target-copy { display: flex; flex: 1; flex-direction: column; margin-left: 13px; }
+    .target-name { font-size: 21px; }
+    .target-desc { margin-top: 3px; color: var(--muted); font-size: 13px; }
+    .chat-head { height: 52px; flex: 0 0 auto; display: flex; align-items: center; }
+    .avatar {
+      display: grid; place-items: center; width: 48px; height: 48px; flex: 0 0 auto;
+      border: 2px solid var(--pink); border-radius: 50%; background: #302538;
+      color: #ffd3d9; font-size: 21px;
+    }
+    .identity { display: flex; flex: 1; min-width: 0; flex-direction: column; margin-left: 12px; }
+    .name { font-size: 20px; }
+    .state { margin-top: 3px; overflow: hidden; color: var(--muted); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+    .counter { color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+    .chat-log { width: 100%; height: 210px; overflow-y: auto; scrollbar-width: none; }
+    .chat-log::-webkit-scrollbar { display: none; }
+    .message-list { display: flex; flex-direction: column; padding: 8px 0 10px; }
+    .message-round { display: flex; flex-direction: column; }
+    .you-row { display: flex; justify-content: flex-end; margin-bottom: 8px; }
+    .you-bubble { max-width: 310px; padding: 9px 13px; border-radius: 16px 16px 5px 16px; background: var(--pink); color: var(--ink); font-size: 17px; line-height: 1.35; }
+    .her-row { display: flex; justify-content: flex-start; }
+    .her-bubble { max-width: 356px; padding: 14px 16px; border-left: 4px solid var(--pink); border-radius: 5px 18px 18px 18px; background: var(--surface-2); color: #f4ebf4; font-size: 20px; line-height: 1.42; }
+    .transition-text { margin-top: 8px; padding-top: 8px; border-top: 1px solid #4a3c52; color: #ffb3bf; font-size: 16px; line-height: 1.4; }
+    .loading-card {
+      display: grid;
+      flex: 0 0 auto;
+      height: 96px;
+      place-items: center;
+      border-radius: 18px;
+      background: var(--surface);
+      color: var(--text);
+      font-size: 20px;
+    }
+    .action-list { display: flex; flex: 0 0 auto; flex-direction: column; gap: 7px; }
+    .action-choice {
+      width: 100%; height: 56px; padding: 0 13px; border: 0; border-radius: 17px;
+      background: #f7ecef; color: var(--ink); cursor: pointer; display: flex;
+      align-items: center; text-align: left;
+    }
+    .action-key { display: grid; place-items: center; width: 32px; height: 32px; flex: 0 0 auto; border-radius: 50%; background: #ffd5dc; color: #8b4656; font-size: 14px; font-weight: 650; }
+    .action-copy { display: flex; flex: 1; min-width: 0; flex-direction: column; margin-left: 11px; }
+    .action-tag { color: #a5707d; font-size: 11px; }
+    .action-text { margin-top: 1px; overflow: hidden; font-size: 18px; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+    .day-complete { flex: 0 0 auto; padding: 14px 16px 16px; border-radius: 18px; background: var(--surface); }
+    .day-complete-title { font-size: 20px; text-align: center; }
+    .day-complete .primary-button { height: 64px; margin-top: 12px; }
+    @media (max-height: 590px), (max-width: 490px) {
+      body { padding: 0; background: var(--bg); }
+      .device { width: 432px; height: 514px; padding: 0; border-radius: 0; box-shadow: none; }
+      .screen { border-radius: 0; }
+    }
+  </style>
+</head>
+<body>
+  <main class="device" aria-label="晚风对话 432×514 手表预览">
+    <section class="screen">
+      <section class="view active" id="intro">
+        <div class="intro-head">
+          <div class="brand-mark" aria-hidden="true">♡</div>
+          <div class="eyebrow">LATE NIGHT TALK</div>
+        </div>
+        <h1>晚风对话</h1>
+        <div class="subtitle">选什么，就聊什么</div>
+        <div class="background-card">
+          <div class="background-label">背景</div>
+          <div class="background-text" id="background"></div>
+        </div>
+        <div class="intro-space"></div>
+        <button class="primary-button" id="startButton" type="button">
+          <span class="primary-title">进入游戏</span>
+          <span class="primary-sub">选择今晚的关系</span>
+        </button>
+        <div class="intro-foot">52,150 句固定文本 · 每天自动随机场景</div>
+      </section>
+
+      <section class="view" id="modes">
+        <div class="mode">
+          <div class="mode-eyebrow">CHOOSE YOUR STORY</div>
+          <div class="mode-title">今晚，想怎么开始？</div>
+          <div class="mode-sub">两种入口，每天自动进入一个随机场景。</div>
+          <button class="mode-card romance-card" id="romanceButton" type="button">
+            <span class="mode-card-top"><span class="mode-tag">直接恋爱</span><span class="mode-arrow">›</span></span>
+            <span class="mode-card-title">和知夏继续</span>
+            <span class="mode-card-sub">默认对象：林知夏 · 已经恋爱</span>
+          </button>
+          <button class="mode-card chase-card" id="chaseButton" type="button">
+            <span class="mode-card-top"><span class="mode-tag chase-tag">追求他人</span><span class="mode-arrow">›</span></span>
+            <span class="mode-card-title">换一个人，从头靠近</span>
+            <span class="mode-card-sub">从三位角色中选择 · 进入追求状态</span>
+          </button>
+          <button class="mode-back" id="backIntroButton" type="button">返回背景</button>
+        </div>
+      </section>
+
+      <section class="view" id="targets">
+        <div class="mode">
+          <div class="mode-eyebrow">PURSUE SOMEONE</div>
+          <div class="mode-title">你想追求谁？</div>
+          <div class="mode-sub">从三位中选择一位，今晚开始靠近。</div>
+          <button class="target-option" data-target="苏遥" type="button">
+            <span class="target-avatar target-avatar-a">苏</span>
+            <span class="target-copy"><span class="target-name">苏遥</span><span class="target-desc">安静慢热，喜欢雨天</span></span>
+          </button>
+          <button class="target-option" data-target="江晚" type="button">
+            <span class="target-avatar target-avatar-b">江</span>
+            <span class="target-copy"><span class="target-name">江晚</span><span class="target-desc">直率爱笑，说话不绕弯</span></span>
+          </button>
+          <button class="target-option" data-target="顾晴" type="button">
+            <span class="target-avatar target-avatar-c">顾</span>
+            <span class="target-copy"><span class="target-name">顾晴</span><span class="target-desc">温柔细心，总先照顾别人</span></span>
+          </button>
+          <div class="intro-space"></div>
+          <button class="mode-back" id="backModesButton" type="button">返回模式选择</button>
+        </div>
+      </section>
+
+      <section class="view" id="chat">
+        <div class="chat-head">
+          <div class="avatar" id="avatar">夏</div>
+          <div class="identity">
+            <div class="name" id="characterName">林知夏</div>
+            <div class="state" id="statusLine"></div>
+          </div>
+          <div class="counter" id="counter">1 / 10</div>
+        </div>
+        <div class="chat-log" id="chatLog" aria-live="polite">
+          <div class="message-list" id="messageList"></div>
+        </div>
+        <div class="loading-card" id="loadingCard" hidden>
+          <span id="loadingText">正在加载场景…</span>
+        </div>
+        <div class="action-list" id="actionList"></div>
+        <div class="day-complete" id="dayComplete" hidden>
+          <div class="day-complete-title" id="daySummary"></div>
+          <button class="primary-button" id="nextDayButton" type="button">
+            <span class="primary-title" id="nextDayTitle">进入第 2 天</span>
+            <span class="primary-sub">重新随机场景，切换概率重置</span>
+          </button>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script type="module">
+    import STORY from "./story_data.js";
+
+    const BACKGROUND = "你认识一个很在意的人，已经三个月。今晚一起加班后，你们在便利店门口遇到大雨。TA站在你旁边，手里只有一杯热咖啡。";
+    const ACTION_BY_ID = Object.fromEntries(STORY.actions.map((action) => [action.id, action]));
+    const HOTEL_ACTION_BY_ID = Object.fromEntries(STORY.hotelActions.map((action) => [action.id, action]));
+    const POOL_CACHE = {};
+    let CURRENT_SCENE = null;
+    let HOTEL_DATA = null;
+    const SEARCH = new URLSearchParams(location.search);
+    const FORCED_NIGHT = SEARCH.get("night");
+    const FORCED_TRANSITION = SEARCH.get("transition") === "1";
+    const START_ACTIONS = ["a01", "a02", "a03"];
+    const NIGHT_START_HOME = ["a02", "a04", "a15"];
+    const NIGHT_START_CALL = ["a04", "a12", "a29"];
+    const NEXT_ACTIONS = {
+      a01: ["a02", "a03", "a07"], a02: ["a04", "a06", "a12"], a03: ["a08", "a09", "a21"],
+      a04: ["a05", "a12", "a16"], a05: ["a06", "a10", "a13"], a06: ["a08", "a15", "a21"],
+      a07: ["a08", "a11", "a25"], a08: ["a11", "a19", "a13"], a09: ["a05", "a17", "a21"],
+      a10: ["a05", "a13", "a17"], a11: ["a13", "a19", "a21"], a12: ["a04", "a15", "a16"],
+      a13: ["a08", "a19", "a21"], a14: ["a08", "a13", "a21"], a15: ["a19", "a25", "a27"],
+      a16: ["a19", "a25", "a27"], a17: ["a18", "a23", "a24"], a18: ["a17", "a21", "a13"],
+      a19: ["a20", "a25", "a27"], a20: ["a11", "a16", "a25"], a21: ["a11", "a18", "a19"],
+      a22: ["a23", "a25", "a26"], a23: ["a25", "a29", "a30"], a24: ["a28", "a29", "a30"],
+      a25: ["a26", "a27", "a29"], a26: ["a19", "a27", "a30"], a27: ["a19", "a25", "a28"],
+      a28: ["a27", "a29", "a30"], a29: ["a26", "a28", "a30"], a30: ["a27", "a28", "a29"]
+    };
+    const views = {
+      intro: document.getElementById("intro"),
+      modes: document.getElementById("modes"),
+      targets: document.getElementById("targets"),
+      chat: document.getElementById("chat")
+    };
+    const avatar = document.getElementById("avatar");
+    const characterName = document.getElementById("characterName");
+    const statusLine = document.getElementById("statusLine");
+    const counter = document.getElementById("counter");
+    const chatLog = document.getElementById("chatLog");
+    const messageList = document.getElementById("messageList");
+    const actionList = document.getElementById("actionList");
+    const dayComplete = document.getElementById("dayComplete");
+    const daySummary = document.getElementById("daySummary");
+    const nextDayTitle = document.getElementById("nextDayTitle");
+    const loadingCard = document.getElementById("loadingCard");
+    const loadingText = document.getElementById("loadingText");
+    let state = {};
+
+    document.getElementById("background").textContent = BACKGROUND;
+
+    function showView(name) {
+      Object.entries(views).forEach(([key, element]) => element.classList.toggle("active", key === name));
+    }
+    function linesOf(key, blob) {
+      if (!POOL_CACHE[key]) POOL_CACHE[key] = String(blob).split("\n");
+      return POOL_CACHE[key];
+    }
+    function randomLine(blob) {
+      const lines = String(blob).split("\n");
+      return lines[Math.floor(Math.random() * lines.length)];
+    }
+    function clearPoolCache() {
+      Object.keys(POOL_CACHE).forEach((key) => delete POOL_CACHE[key]);
+    }
+    function showLoading(text) {
+      loadingText.textContent = text;
+      loadingCard.hidden = false;
+      actionList.hidden = true;
+      dayComplete.hidden = true;
+    }
+    function hideLoading() {
+      loadingCard.hidden = true;
+    }
+    function beginPlayer(name, relationship) {
+      state = { characterName: name, avatarText: name.slice(0, 1), relationship };
+      startDay(1);
+    }
+    function renderChat() {
+      messageList.replaceChildren();
+      for (const round of state.chatRounds || []) {
+        const block = document.createElement("div");
+        block.className = "message-round";
+        if (round.you) {
+          const youRow = document.createElement("div");
+          youRow.className = "you-row";
+          const bubble = document.createElement("div");
+          bubble.className = "you-bubble";
+          bubble.textContent = round.you;
+          youRow.appendChild(bubble);
+          block.appendChild(youRow);
+        }
+        const herRow = document.createElement("div");
+        herRow.className = "her-row";
+        const herBubble = document.createElement("div");
+        herBubble.className = "her-bubble";
+        const text = document.createElement("div");
+        text.textContent = round.her;
+        herBubble.appendChild(text);
+        if (round.note) {
+          const note = document.createElement("div");
+          note.className = "transition-text";
+          note.textContent = round.note;
+          herBubble.appendChild(note);
+        }
+        herRow.appendChild(herBubble);
+        block.appendChild(herRow);
+        messageList.appendChild(block);
+      }
+      requestAnimationFrame(() => {
+        chatLog.scrollTop = chatLog.scrollHeight;
+      });
+    }
+    function addRound(you, her, note = "") {
+      const next = (state.chatRounds || []).slice();
+      next.push({ you: you || "", her: her || "", note: note || "" });
+      if (next.length > 10) next.shift();
+      state.chatRounds = next;
+      renderChat();
+    }
+    async function startDay(day) {
+      if (state.loading) return;
+      const target = STORY.scenes[Math.floor(Math.random() * STORY.scenes.length)];
+      state = { ...state, loading: true };
+      showView("chat");
+      showLoading("正在加载场景…");
+      statusLine.textContent = "正在加载场景…";
+      try {
+        const scene = await STORY.loadScene(target.id);
+        CURRENT_SCENE = scene;
+        clearPoolCache();
+        state = {
+          ...state, loading: false, day, sceneId: scene.id, sceneLabel: scene.name, phase: "main",
+          round: 1, transitionChance: 0.10, transitionsUsed: 0, nightKind: "",
+          nightSourceId: "", nightLabel: "", currentAction: "", usedKeys: [], dayComplete: false, chatRounds: []
+        };
+        avatar.textContent = state.avatarText;
+        characterName.textContent = state.characterName;
+        statusLine.textContent = `第${day}天 · ${scene.name}`;
+        counter.textContent = "1 / 10";
+        dayComplete.hidden = true;
+        actionList.hidden = false;
+        hideLoading();
+        addRound("", randomLine(scene.ambient), "");
+        buildActions();
+      } catch (error) {
+        state = { ...state, loading: false, loadingFailed: true };
+        showLoading("场景加载失败，请刷新页面重试");
+      }
+    }
+    function actionIdsForRound() {
+      if (state.phase === "night") {
+        if (state.nightKind === "hotel") {
+          return STORY.hotelActions.slice((state.round - 1) * 3, state.round * 3).map((item) => item.id);
+        }
+        if (state.round === 1) {
+          return state.nightKind === "call" ? NIGHT_START_CALL : NIGHT_START_HOME;
+        }
+        return NEXT_ACTIONS[state.currentAction] || NIGHT_START_HOME;
+      }
+      if (state.round === 1) return START_ACTIONS;
+      return NEXT_ACTIONS[state.currentAction] || START_ACTIONS;
+    }
+    function buildActions() {
+      actionList.replaceChildren();
+      if (state.loading) return;
+      actionList.hidden = false;
+      dayComplete.hidden = true;
+      const ids = actionIdsForRound();
+      const keys = ["A", "B", "C"];
+      ids.forEach((id, index) => {
+        const action = state.phase === "night" && state.nightKind === "hotel"
+          ? HOTEL_ACTION_BY_ID[id]
+          : ACTION_BY_ID[id];
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "action-choice";
+        button.innerHTML = `
+          <span class="action-key"></span>
+          <span class="action-copy"><span class="action-tag"></span><span class="action-text"></span></span>
+        `;
+        button.querySelector(".action-key").textContent = keys[index];
+        button.querySelector(".action-tag").textContent = state.phase === "night" ? "夜间" : `第${state.round}轮`;
+        button.querySelector(".action-text").textContent = action ? action.label : id;
+        button.addEventListener("click", () => chooseAction(id));
+        actionList.appendChild(button);
+      });
+    }
+    function pickLine(actionId) {
+      const sourceId = state.phase === "night" ? state.nightSourceId : state.sceneId;
+      let pool;
+      if (sourceId === "hotel") pool = HOTEL_DATA ? HOTEL_DATA.pools[actionId] : "";
+      else pool = CURRENT_SCENE ? CURRENT_SCENE.pools[actionId] : "";
+      if (!pool && CURRENT_SCENE) pool = CURRENT_SCENE.pools[actionId];
+      if (!pool) return "";
+      const lines = linesOf(`${sourceId}:${actionId}`, pool);
+      const start = Math.floor(Math.random() * lines.length);
+      let selected = start;
+      for (let i = 0; i < lines.length; i++) {
+        const candidate = (start + i) % lines.length;
+        const key = `${sourceId}:${actionId}:${candidate}`;
+        if (!state.usedKeys.includes(key)) {
+          selected = candidate;
+          state.usedKeys.push(key);
+          break;
+        }
+      }
+      return lines[selected];
+    }
+    async function maybeChangeScene() {
+      if (state.transitionChance <= 0) return "";
+      const forcedFirst = FORCED_TRANSITION && state.transitionsUsed === 0;
+      if (!forcedFirst && Math.random() >= state.transitionChance) return "";
+      const candidates = STORY.scenes.filter((scene) => scene.id !== state.sceneId);
+      const target = candidates[Math.floor(Math.random() * candidates.length)];
+      showLoading(`正在前往${target.name}…`);
+      try {
+        const scene = await STORY.loadScene(target.id);
+        CURRENT_SCENE = scene;
+        clearPoolCache();
+        state.sceneId = scene.id;
+        state.sceneLabel = scene.name;
+        state.transitionChance = Math.max(0, state.transitionChance - 0.02);
+        state.transitionsUsed += 1;
+        statusLine.textContent = `第${state.day}天 · ${scene.name}`;
+        return randomLine(scene.transitions);
+      } catch (error) {
+        return "";
+      } finally {
+        hideLoading();
+      }
+    }
+    async function chooseAction(id) {
+      if (state.loading) return;
+      const action = state.phase === "night" && state.nightKind === "hotel"
+        ? HOTEL_ACTION_BY_ID[id]
+        : ACTION_BY_ID[id];
+      state.currentAction = id;
+      const playerLine = action ? action.label : id;
+      const response = pickLine(id);
+
+      if (state.phase === "main") {
+        if (state.round >= 10) {
+          addRound(playerLine, response, "");
+          await startNight();
+          return;
+        }
+        const transition = await maybeChangeScene();
+        addRound(playerLine, response, transition);
+        state.round += 1;
+        counter.textContent = `${state.round} / 10`;
+        buildActions();
+        return;
+      }
+
+      addRound(playerLine, response, "");
+      if (state.round >= 10) {
+        finishNight();
+        return;
+      }
+      state.round += 1;
+      counter.textContent = `${state.round} / 10`;
+      buildActions();
+    }
+    async function startNight(excluded = [], inheritedNotice = "") {
+      state = { ...state, loading: true };
+      showLoading("正在准备夜晚…");
+      try {
+        const night = await STORY.loadNight();
+        let available = night.outcomes.filter((item) => !excluded.includes(item.id));
+        if (FORCED_NIGHT && excluded.length === 0) {
+          const forced = night.outcomes.find((item) => item.id === FORCED_NIGHT);
+          if (forced) available = [forced];
+        }
+        const total = available.reduce((sum, item) => sum + item.weight, 0);
+        let cursor = Math.random() * total;
+        let outcome = available[available.length - 1];
+        for (const item of available) {
+          cursor -= item.weight;
+          if (cursor <= 0) {
+            outcome = item;
+            break;
+          }
+        }
+        const outcomeLine = randomLine(outcome.lines.join("\n"));
+        if (outcome.id === "parent") {
+          state = { ...state, loading: false, phase: "main", dayComplete: true };
+          addRound("", outcomeLine, "");
+          hideLoading();
+          actionList.hidden = true;
+          dayComplete.hidden = false;
+          daySummary.textContent = "家长要求你回家 · 今天结束";
+          nextDayTitle.textContent = `进入第 ${state.day + 1} 天`;
+          return;
+        }
+        if (outcome.id === "your_empty" && Math.random() < 0.4) {
+          await startNight(["your_empty"], randomLine(outcome.rejectionLines.join("\n")));
+          return;
+        }
+        const useHotel = outcome.id === "hotel";
+        const data = useHotel ? await STORY.loadHotel() : await STORY.loadScene("home");
+        if (useHotel) HOTEL_DATA = data;
+        else CURRENT_SCENE = data;
+        clearPoolCache();
+        state.phase = "night";
+        state.round = 1;
+        state.usedKeys = [];
+        state.currentAction = "";
+        state.dayComplete = false;
+        state.loading = false;
+        if (useHotel) {
+          state.nightKind = "hotel";
+          state.nightSourceId = "hotel";
+          state.nightLabel = "酒店";
+        } else if (outcome.id === "her_home") {
+          state.nightKind = "call";
+          state.nightSourceId = "home";
+          state.nightLabel = "电话陪伴";
+        } else {
+          state.nightKind = "home";
+          state.nightSourceId = "home";
+          state.nightLabel = outcome.id === "her_empty" ? "她的家" : "你的家";
+        }
+        hideLoading();
+        addRound("", outcomeLine, inheritedNotice);
+        statusLine.textContent = `第${state.day}天 · ${state.nightLabel} · 夜间`;
+        counter.textContent = "1 / 10";
+        buildActions();
+      } catch (error) {
+        state = { ...state, loading: false };
+        showLoading("夜晚加载失败，请刷新页面重试");
+      }
+    }
+    function finishNight() {
+      actionList.hidden = true;
+      dayComplete.hidden = false;
+      daySummary.textContent = "她太困了，说着说着睡着了 · 夜间结束";
+      counter.textContent = "10 / 10";
+      nextDayTitle.textContent = `进入第 ${state.day + 1} 天`;
+    }
+
+    document.getElementById("startButton").addEventListener("click", () => showView("modes"));
+    document.getElementById("romanceButton").addEventListener("click", () => beginPlayer("林知夏", "恋爱中"));
+    document.getElementById("chaseButton").addEventListener("click", () => showView("targets"));
+    document.querySelectorAll(".target-option").forEach((button) => {
+      button.addEventListener("click", () => beginPlayer(button.dataset.target, "正在追求"));
+    });
+    document.getElementById("backIntroButton").addEventListener("click", () => showView("intro"));
+    document.getElementById("backModesButton").addEventListener("click", () => showView("modes"));
+    document.getElementById("nextDayButton").addEventListener("click", () => startDay(state.day + 1));
+  </script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+.DS_Store
+Thumbs.db
+
+# Dependencies and build output
+node_modules/
+build/
+dist/
+sign/
+
+# Local tooling
+.ide/
+.preview.json
+.tools/
+
+# Generated reference text (recreate with `pnpm generate`)
+content/
+src/assets/story/
+
+# Logs and local environment
+*.log
+.env.local
+.env.*.local
+
+# Preview screenshots
+preview/*.png

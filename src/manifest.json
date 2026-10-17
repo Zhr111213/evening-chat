@@ -1,0 +1,29 @@
+{
+  "package": "com.orbitv.eveningchat",
+  "name": "晚风对话",
+  "icon": "/assets/images/icon.png",
+  "versionName": "1.0.0",
+  "versionCode": 1,
+  "appCategory": [
+    "games"
+  ],
+  "deviceTypeList": [
+    "watch-square"
+  ],
+  "config": {
+    "designWidth": 432,
+    "debug": false
+  },
+  "display": {
+    "backgroundColor": "#121018"
+  },
+  "minPlatformVersion": 1070,
+  "router": {
+    "entry": "pages/Home",
+    "pages": {
+      "pages/Home": {
+        "component": "index"
+      }
+    }
+  }
+}
