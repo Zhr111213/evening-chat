@@ -23,3 +23,9 @@ src/assets/story/
 
 # Preview screenshots
 preview/*.png
+
+# Generated install packages
+*.rpk
+*.rpks
+*.srpk
+安装包/

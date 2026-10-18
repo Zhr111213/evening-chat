@@ -2,8 +2,13 @@
   "package": "com.orbitv.eveningchat",
   "name": "晚风对话",
   "icon": "/assets/images/icon.png",
-  "versionName": "1.0.0",
-  "versionCode": 1,
+  "features": [
+    {
+      "name": "blueos.storage.storage"
+    }
+  ],
+  "versionName": "1.2.0",
+  "versionCode": 5,
   "appCategory": [
     "games"
   ],

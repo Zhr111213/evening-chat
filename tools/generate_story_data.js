@@ -11,6 +11,7 @@ const assetSceneRoot = path.join(assetRoot, "scenes");
 
 fs.mkdirSync(sceneRoot, { recursive: true });
 fs.mkdirSync(path.join(contentRoot, "scenes"), { recursive: true });
+fs.mkdirSync(path.join(contentRoot, "tones"), { recursive: true });
 fs.mkdirSync(assetSceneRoot, { recursive: true });
 
 const scenes = [
@@ -869,7 +870,173 @@ const manifest = {
   transitionLines: 0,
   hotelLines: 0,
   nightLines: 0,
+  toneLines: 0,
+  riskyReactionLines: 0,
   total: 0
+};
+
+const TONE_BANDS = ["cold", "low", "high"];
+
+const toneContexts = [
+  "在{scene}的灯下，",
+  "晚风从{scene}吹过来时，",
+  "在{scene}安静下来以后，",
+  "在{scene}，你说话的时候，",
+  "在{scene}，她停下脚步时，",
+  "在{scene}，你们靠得很近时，",
+  "在{scene}，她没有立刻回答时，",
+  "在{scene}，你看向她的时候，",
+  "在{scene}，她低下头时，",
+  "在{scene}，她的视线落回来时，",
+  "在{scene}，你往前靠近半步，",
+  "在{scene}，她的手指轻轻蜷了一下，",
+  "在{scene}，你们之间沉默了几秒，",
+  "在{scene}，她轻轻吸了一口气，",
+  "在{scene}，你叫她的名字时，",
+  "在{scene}，她抬眼看你时，",
+  "在{scene}，你把手收回来时，",
+  "在{scene}，她的语气慢下来时，",
+  "在{scene}，你们并肩站着时，",
+  "在{scene}，她微微侧过身时，",
+  "在{scene}，你停下来等她时，",
+  "在{scene}，她整理了一下头发，",
+  "在{scene}，你说完那句话以后，",
+  "在{scene}，你停下动作时，",
+  "在{scene}，她的手停在半空时，",
+  "在{scene}，你们一起沉默时，",
+  "在{scene}，她看向远处时，",
+  "在{scene}，你准备开口时，"
+];
+
+const toneResponses = {
+  high: [
+    "她往你这边靠近了一点，没有刻意拉开距离。",
+    "她看着你，眼里的笑意没有藏住。",
+    "她把声音放轻，像只愿意说给你听。",
+    "她没有躲开，反而把肩膀贴得更近。",
+    "她的手指轻轻碰了碰你的手背。",
+    "她低下头笑了一下，耳根有点红。",
+    "她抬眼看你，眼神比刚才软了很多。",
+    "她轻轻应了一声，尾音带着一点笑意。",
+    "她把头发别到耳后，没有急着走开。",
+    "她往你身边站了站，像是默认了你的靠近。",
+    "她没有说话，却把手里的小东西递给了你。",
+    "她的肩膀放松下来，整个人都离你更近。",
+    "她看着你，过了两秒才想起要移开视线。",
+    "她小声说了一句什么，只有你听得见。",
+    "她轻轻碰了碰你的袖子，像是在提醒你别走。",
+    "她的笑意从眼角漫出来，没有刻意收住。",
+    "她往你这边偏了偏头，呼吸也变得轻。",
+    "她没有催你，只是安静地站在你旁边。",
+    "她把手里的东西分给你一半，动作很自然。",
+    "她看着前面的路，嘴角却一直没放下来。"
+  ],
+  low: [
+    "她礼貌地应了一声，没有再往下说。",
+    "她看了你一眼，把视线移回前方。",
+    "她没有拒绝，但也没有靠近。",
+    "她的语气很平，听不出太多情绪。",
+    "她轻轻点了点头，像是在等你继续。",
+    "她把手里的小东西收好，没有接话。",
+    "她笑了一下，笑意却没有到眼睛里。",
+    "她往旁边站了一点，给你留出空间。",
+    "她低头看了看地面，没有马上回答。",
+    "她没有躲开，只是把手收了回去。",
+    "她嗯了一声，声音很轻。",
+    "她看着远处，像是在想别的事。",
+    "她把外套拢紧了一点，没有催你。",
+    "她的表情很平静，让你猜不透她在想什么。",
+    "她和你保持着一个不近不远的距离。",
+    "她听完以后，只说了句“走吧”。",
+    "她没有接你的玩笑，只轻轻笑了一下。",
+    "她的脚步慢下来，却没有停下来等你。",
+    "她把视线落在别处，像是在回避这个问题。",
+    "她点了点头，态度客气而克制。"
+  ],
+  cold: [
+    "她往旁边挪了半步，和你拉开了距离。",
+    "她没有接话，脸色淡了下来。",
+    "她把你的手从腿上移开，有点生气。",
+    "她的语气冷下来，让你别再这样。",
+    "她别过脸，明显不太高兴。",
+    "她把手抽了回去，没有再看你。",
+    "她皱了一下眉，后退了半步。",
+    "她摇了摇头，拒绝了你的靠近。",
+    "她没有笑，空气一下子安静了。",
+    "她把外套拉紧，像是想把自己隔开。",
+    "她冷冷地看了你一眼，没有解释。",
+    "她的回答很简短，显然不想继续。",
+    "她转身往前走，脚步比刚才快。",
+    "她把距离重新拉了回来，没有留余地。",
+    "她的表情变得认真，让你别再越界。",
+    "她没有回应你的话，只低头看着手机。",
+    "她轻轻叹了口气，像是有些失望。",
+    "她避开了你的视线，语气也淡了。",
+    "她站在原地没动，却明显不想让你靠近。",
+    "她说今天有点累，想一个人待一会儿。"
+  ]
+};
+
+const riskyActions = ["a07", "a08", "a10", "a13", "a16", "a19", "a20", "a22", "a23", "a26"];
+
+const riskyContextTemplates = [
+  "（你{action}）",
+  "（你{action}的时候）",
+  "（{action}之后）",
+  "（你刚{action}，她就有了反应）",
+  "（她感觉到你{action}）",
+  "（你{action}，她没有立刻说话）",
+  "（你{action}以后，空气安静了一瞬）"
+];
+
+const riskyResponses = {
+  high: [
+    "她没有躲开，反而靠近了一点。",
+    "她的呼吸慢下来，默许了你的靠近。",
+    "她看了你一眼，没有把手收回去。",
+    "她轻轻握住你的手，像是回答。",
+    "她把脸偏向你，耳根有点红。"
+  ],
+  low: [
+    "她愣了一下，没有立刻回应。",
+    "她轻轻避开了一点，像是在确认。",
+    "她的手停在半空，最后还是没有推开。",
+    "她低声说这样有点快。",
+    "她看了你一眼，把距离留了出来。"
+  ],
+  cold: [
+    "她把你的手移开，脸色有点冷。",
+    "她往后退了半步，明确和你拉开距离。",
+    "她没有笑，语气也变得生硬。",
+    "她摇了摇头，让你别再继续。",
+    "她别过脸，明显不太高兴。"
+  ]
+};
+
+const specialRiskyResponses = {
+  a20: {
+    high: [
+      "她没有躲开，只是把脸转向了窗外。",
+      "她轻轻按住你的手，没有推开。",
+      "她的呼吸停了一下，耳根红了。",
+      "她小声说别闹，却没有移开。",
+      "她看了你一眼，默许了你的靠近。"
+    ],
+    low: [
+      "她按住你的手，轻轻摇了摇头。",
+      "她把你的手放回原处，没有生气，但也没有同意。",
+      "她低声说这里不合适。",
+      "她往旁边挪了一点，给你留出空间。",
+      "她看了你一眼，示意你别再靠近。"
+    ],
+    cold: [
+      "她把你的手从腿上移开，有点生气。",
+      "她按住你的手，让你别继续。",
+      "她往旁边挪开，脸色冷了下来。",
+      "她摇了摇头，说这样不行。",
+      "她把腿收回去，和你拉开了距离。"
+    ]
+  }
 };
 
 const sceneModules = [];
@@ -920,18 +1087,56 @@ for (const scene of scenes) {
     throw new Error(`${scene.id} expected 5000 lines, got ${sceneTextLines.length}`);
   }
 
+  const tonePools = {};
+  const compressedTonePools = {};
+  const toneTextLines = [];
+  for (const band of TONE_BANDS) {
+    const lines = [];
+    for (const context of toneContexts) {
+      for (const response of toneResponses[band]) {
+        lines.push(fillScene(context, scene.name) + response);
+      }
+    }
+    if (lines.length !== 560) {
+      throw new Error(`${scene.id}/${band} expected 560 tone lines, got ${lines.length}`);
+    }
+    tonePools[band] = toBlob(lines);
+    compressedTonePools[band] = [];
+    for (let i = 0; i < lines.length; i += 140) {
+      compressedTonePools[band].push(
+        LZString.compressToEncodedURIComponent(lines.slice(i, i + 140).join("\n"))
+      );
+    }
+    if (compressedTonePools[band].length !== 4) {
+      throw new Error(`${scene.id}/${band} expected 4 tone chunks`);
+    }
+    toneTextLines.push(...lines);
+    allSentences.push(...lines);
+    manifest.toneLines += lines.length;
+  }
+
   const sceneData = {
     id: scene.id,
     name: scene.name,
     pools,
     ambient: toBlob(ambientLines),
-    transitions: toBlob(transitionLines)
+    transitions: toBlob(transitionLines),
+    tones: tonePools
   };
 
   // 手表运行时只读取这个紧凑文本文件，按“行为池 / 环境句 / 过渡句”固定顺序切分。
   const sceneAssetText = sceneTextLines.concat(transitionLines).join("\n") + "\n";
   fs.writeFileSync(path.join(assetSceneRoot, `${scene.id}.txt`), sceneAssetText, "utf8");
-  compressedScenes[scene.id] = LZString.compressToEncodedURIComponent(sceneAssetText);
+  const compressedPools = {};
+  for (const action of actions) {
+    compressedPools[action.id] = LZString.compressToEncodedURIComponent(pools[action.id]);
+  }
+  compressedScenes[scene.id] = {
+    ambient: LZString.compressToEncodedURIComponent(toBlob(ambientLines)),
+    transitions: LZString.compressToEncodedURIComponent(toBlob(transitionLines)),
+    pools: compressedPools,
+    tones: compressedTonePools
+  };
 
   const modulePath = path.join(sceneRoot, `${scene.id}.js`);
   writeModule(modulePath, `export default ${JSON.stringify(sceneData)}\n`);
@@ -944,6 +1149,11 @@ for (const scene of scenes) {
   fs.writeFileSync(
     path.join(contentRoot, "scenes", `${scene.id}.txt`),
     sceneTextLines.join("\n") + "\n",
+    "utf8"
+  );
+  fs.writeFileSync(
+    path.join(contentRoot, "tones", `${scene.id}.txt`),
+    toneTextLines.join("\n") + "\n",
     "utf8"
   );
 }
@@ -974,7 +1184,14 @@ manifest.hotelLines += hotelAmbient.length;
 
 const hotelAssetText = hotelTextLines.join("\n") + "\n";
 fs.writeFileSync(path.join(assetRoot, "hotel.txt"), hotelAssetText, "utf8");
-compressedScenes.hotel = LZString.compressToEncodedURIComponent(hotelAssetText);
+const compressedHotelPools = {};
+for (const action of hotelActions) {
+  compressedHotelPools[action.id] = LZString.compressToEncodedURIComponent(hotelData.pools[action.id]);
+}
+compressedScenes.hotel = {
+  ambient: LZString.compressToEncodedURIComponent(hotelData.ambient),
+  pools: compressedHotelPools
+};
 
 if (manifest.hotelLines !== 2000) {
   throw new Error(`hotel expected 2000, got ${manifest.hotelLines}`);
@@ -982,6 +1199,51 @@ if (manifest.hotelLines !== 2000) {
 
 writeModule(path.join(dataRoot, "hotel.js"), `export default ${JSON.stringify(hotelData)}\n`);
 fs.writeFileSync(path.join(contentRoot, "hotel.txt"), hotelTextLines.join("\n") + "\n", "utf8");
+
+const riskyReactionTextLines = [];
+const reactionPools = {};
+for (const actionId of riskyActions) {
+  const action = actions.find((item) => item.id === actionId);
+  if (!action) {
+    throw new Error(`Unknown risky action: ${actionId}`);
+  }
+  reactionPools[actionId] = {};
+  for (const band of TONE_BANDS) {
+    const responses =
+      specialRiskyResponses[actionId] && specialRiskyResponses[actionId][band]
+        ? specialRiskyResponses[actionId][band]
+        : riskyResponses[band];
+    const lines = [];
+    for (const template of riskyContextTemplates) {
+      const context = template.replace(/\{action\}/g, action.label);
+      for (const response of responses) {
+        lines.push(context + response);
+      }
+    }
+    if (lines.length !== 35) {
+      throw new Error(`${actionId}/${band} expected 35 reaction lines, got ${lines.length}`);
+    }
+    reactionPools[actionId][band] = toBlob(lines);
+    riskyReactionTextLines.push(...lines);
+    allSentences.push(...lines);
+    manifest.riskyReactionLines += lines.length;
+  }
+}
+
+compressedScenes.reactions = {};
+for (const actionId of riskyActions) {
+  compressedScenes.reactions[actionId] = {};
+  for (const band of TONE_BANDS) {
+    compressedScenes.reactions[actionId][band] = LZString.compressToEncodedURIComponent(
+      reactionPools[actionId][band]
+    );
+  }
+}
+fs.writeFileSync(
+  path.join(contentRoot, "reactions.txt"),
+  riskyReactionTextLines.join("\n") + "\n",
+  "utf8"
+);
 
 const nightLines = [];
 for (const outcome of nightOutcomes) {
@@ -1015,14 +1277,69 @@ for (const sentence of allSentences) {
 }
 const duplicates = [...duplicateMap.entries()].filter(([, count]) => count > 1);
 
-if (manifest.total !== 52150) {
-  throw new Error(`expected 52150 total sentences, got ${manifest.total}`);
+if (manifest.total !== 70000) {
+  throw new Error(`expected 70000 total sentences, got ${manifest.total}`);
 }
 if (duplicates.length > 0) {
   throw new Error(`found ${duplicates.length} duplicate sentences: ${duplicates.slice(0, 5).map(([text]) => text).join(" | ")}`);
 }
 
 const sceneCatalog = sceneModules.map(({ id, name }) => ({ id, name }));
+const affectionConfig = {
+  start: {
+    "林知夏": 60,
+    "苏遥": 0,
+    "江晚": 30,
+    "顾晴": 40
+  },
+  stages: [
+    { name: "讨厌", min: 0 },
+    { name: "疏远", min: 20 },
+    { name: "普通", min: 40 },
+    { name: "好感", min: 60 },
+    { name: "心动", min: 80 }
+  ],
+  bands: [
+    { id: "cold", name: "讨厌", min: 0, max: 29 },
+    { id: "low", name: "低好感", min: 30, max: 59 },
+    { id: "high", name: "高好感", min: 60, max: 100 }
+  ],
+  actionDeltas: {
+    a01: { delta: 1 },
+    a02: { delta: 1 },
+    a03: { delta: 1 },
+    a04: { delta: 2 },
+    a05: { delta: 2 },
+    a06: { delta: 2 },
+    a07: { delta: 3, min: 40, low: -2 },
+    a08: { delta: 2, min: 50, low: -2 },
+    a09: { delta: 1 },
+    a10: { delta: 2, min: 40, low: -1 },
+    a11: { delta: 2 },
+    a12: { delta: 2 },
+    a13: { delta: 3, min: 50, low: -2 },
+    a14: { delta: 2 },
+    a15: { delta: 2 },
+    a16: { delta: 4, min: 60, low: -3 },
+    a17: { delta: 3 },
+    a18: { delta: 2 },
+    a19: { delta: 3, min: 60, low: -2 },
+    a20: { delta: 2, min: 80, low: -5 },
+    a21: { delta: 2 },
+    a22: { delta: 4, min: 50, low: -2 },
+    a23: { delta: 1, min: 60, low: -3 },
+    a24: { delta: 3, min: 60, low: -1 },
+    a25: { delta: 3, min: 50, low: -2 },
+    a26: { delta: 4, min: 70, low: -4 },
+    a27: { delta: 1 },
+    a28: { delta: 2 },
+    a29: { delta: 2 },
+    a30: { delta: 1 }
+  },
+  riskyActions: riskyActions,
+  diminishing: { second: 0.5, third: 0 }
+};
+
 // 首屏只保留目录、按钮文案和小型夜间事件。场景与酒店正文放进 assets，
 // 由页面按场景读取，不再把 4MB 以上的字符串塞进首页 JS。
 const metaSource = `import night from './night.js'
@@ -1038,6 +1355,7 @@ export default {
   rounds: ROUNDS,
   hotelActions: HOTEL_ACTIONS,
   night: night,
+  affection: ${JSON.stringify(affectionConfig, null, 2)},
   counts: ${JSON.stringify(manifest, null, 2)},
   layout: {
     sceneActionCount: 30,
@@ -1045,7 +1363,9 @@ export default {
     sceneAmbientSize: 500,
     sceneTransitionSize: 10,
     hotelPoolSize: 65,
-    hotelAmbientSize: 50
+    hotelAmbientSize: 50,
+    tonePerPool: 560,
+    riskyReactionPerPool: 35
   },
   balance: {
     startTransitionChance: 0.10,

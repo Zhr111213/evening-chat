@@ -324,15 +324,199 @@ export default {
   rounds: ROUNDS,
   hotelActions: HOTEL_ACTIONS,
   night: night,
+  affection: {
+  "start": {
+    "林知夏": 60,
+    "苏遥": 0,
+    "江晚": 30,
+    "顾晴": 40
+  },
+  "stages": [
+    {
+      "name": "讨厌",
+      "min": 0
+    },
+    {
+      "name": "疏远",
+      "min": 20
+    },
+    {
+      "name": "普通",
+      "min": 40
+    },
+    {
+      "name": "好感",
+      "min": 60
+    },
+    {
+      "name": "心动",
+      "min": 80
+    }
+  ],
+  "bands": [
+    {
+      "id": "cold",
+      "name": "讨厌",
+      "min": 0,
+      "max": 29
+    },
+    {
+      "id": "low",
+      "name": "低好感",
+      "min": 30,
+      "max": 59
+    },
+    {
+      "id": "high",
+      "name": "高好感",
+      "min": 60,
+      "max": 100
+    }
+  ],
+  "actionDeltas": {
+    "a01": {
+      "delta": 1
+    },
+    "a02": {
+      "delta": 1
+    },
+    "a03": {
+      "delta": 1
+    },
+    "a04": {
+      "delta": 2
+    },
+    "a05": {
+      "delta": 2
+    },
+    "a06": {
+      "delta": 2
+    },
+    "a07": {
+      "delta": 3,
+      "min": 40,
+      "low": -2
+    },
+    "a08": {
+      "delta": 2,
+      "min": 50,
+      "low": -2
+    },
+    "a09": {
+      "delta": 1
+    },
+    "a10": {
+      "delta": 2,
+      "min": 40,
+      "low": -1
+    },
+    "a11": {
+      "delta": 2
+    },
+    "a12": {
+      "delta": 2
+    },
+    "a13": {
+      "delta": 3,
+      "min": 50,
+      "low": -2
+    },
+    "a14": {
+      "delta": 2
+    },
+    "a15": {
+      "delta": 2
+    },
+    "a16": {
+      "delta": 4,
+      "min": 60,
+      "low": -3
+    },
+    "a17": {
+      "delta": 3
+    },
+    "a18": {
+      "delta": 2
+    },
+    "a19": {
+      "delta": 3,
+      "min": 60,
+      "low": -2
+    },
+    "a20": {
+      "delta": 2,
+      "min": 80,
+      "low": -5
+    },
+    "a21": {
+      "delta": 2
+    },
+    "a22": {
+      "delta": 4,
+      "min": 50,
+      "low": -2
+    },
+    "a23": {
+      "delta": 1,
+      "min": 60,
+      "low": -3
+    },
+    "a24": {
+      "delta": 3,
+      "min": 60,
+      "low": -1
+    },
+    "a25": {
+      "delta": 3,
+      "min": 50,
+      "low": -2
+    },
+    "a26": {
+      "delta": 4,
+      "min": 70,
+      "low": -4
+    },
+    "a27": {
+      "delta": 1
+    },
+    "a28": {
+      "delta": 2
+    },
+    "a29": {
+      "delta": 2
+    },
+    "a30": {
+      "delta": 1
+    }
+  },
+  "riskyActions": [
+    "a07",
+    "a08",
+    "a10",
+    "a13",
+    "a16",
+    "a19",
+    "a20",
+    "a22",
+    "a23",
+    "a26"
+  ],
+  "diminishing": {
+    "second": 0.5,
+    "third": 0
+  }
+},
   counts: {
-  "generatedAt": "2026-10-17T11:18:39.307Z",
+  "generatedAt": "2026-10-18T05:43:01.487Z",
   "sceneCount": 10,
   "scenePoolLines": 45000,
   "sceneAmbientLines": 5000,
   "transitionLines": 100,
   "hotelLines": 2000,
   "nightLines": 50,
-  "total": 52150
+  "toneLines": 16800,
+  "riskyReactionLines": 1050,
+  "total": 70000
 },
   layout: {
     sceneActionCount: 30,
@@ -340,7 +524,9 @@ export default {
     sceneAmbientSize: 500,
     sceneTransitionSize: 10,
     hotelPoolSize: 65,
-    hotelAmbientSize: 50
+    hotelAmbientSize: 50,
+    tonePerPool: 560,
+    riskyReactionPerPool: 35
   },
   balance: {
     startTransitionChance: 0.10,

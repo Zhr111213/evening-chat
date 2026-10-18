@@ -2,7 +2,7 @@
   <div class="app">
     <div class="safe">
       <block if="{{view === 'intro'}}">
-        <div class="intro">
+        <div class="{{introClass}}">
           <div class="intro-head">
             <div class="brand-mark">
               <text class="brand-heart">♡</text>
@@ -20,11 +20,22 @@
 
           <div class="intro-space"></div>
 
-          <div class="primary-button" onclick="openModes">
-            <text class="primary-title">进入游戏</text>
-            <text class="primary-sub">选择今晚的关系</text>
-          </div>
-          <text class="intro-foot">52,150 句固定文本 · 每天自动随机场景</text>
+          <block if="{{hasSave}}">
+            <div class="primary-button" onclick="continueGame">
+              <text class="primary-title">继续游戏</text>
+              <text class="primary-sub">{{saveSummary}}</text>
+            </div>
+            <div class="intro-restart" onclick="openModes">
+              <text class="intro-restart-text">重新开始</text>
+            </div>
+          </block>
+          <block else>
+            <div class="primary-button" onclick="openModes">
+              <text class="primary-title">进入游戏</text>
+              <text class="primary-sub">选择今晚的关系</text>
+            </div>
+          </block>
+          <text class="intro-foot">70,000 句固定文本 · 每天自动随机场景</text>
         </div>
       </block>
 
@@ -104,7 +115,7 @@
       <block elif="{{view === 'chat'}}">
         <div class="chat">
           <div class="chat-head">
-            <div class="avatar">
+          <div class="avatar {{avatarClass}}">
               <text class="avatar-text">{{avatarText}}</text>
             </div>
             <div class="identity">
@@ -127,6 +138,7 @@
                 <div class="her-row">
                   <div class="her-bubble">
                     <text class="her-text">{{round.her}}</text>
+                    <text class="tone-text {{round.toneClass}}" if="{{round.tone}}">{{round.tone}}</text>
                     <text class="transition-text" if="{{round.note}}">{{round.note}}</text>
                   </div>
                 </div>
@@ -147,6 +159,7 @@
           <block elif="{{dayComplete}}">
             <div class="day-complete">
               <text class="day-complete-title">{{daySummary}}</text>
+              <text class="affection-summary" if="{{affectionSummary}}">{{affectionSummary}}</text>
               <div class="primary-button compact" onclick="nextDay">
                 <text class="primary-title">进入第 {{nextDay}} 天</text>
                 <text class="primary-sub">重新随机场景，切换概率重置</text>
@@ -287,6 +300,41 @@
     text-align: center;
   }
 
+  .intro-restart {
+    height: 40px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .intro-restart-text {
+    color: #7f7286;
+    font-size: 14px;
+  }
+
+  .intro-has-save .title {
+    margin-top: 16px;
+    font-size: 42px;
+  }
+
+  .intro-has-save .background-card {
+    margin-top: 14px;
+    padding: 14px 16px;
+  }
+
+  .intro-has-save .background-text {
+    font-size: 19px;
+    line-height: 26px;
+    lines: 4;
+  }
+
+  .intro-has-save .primary-button {
+    height: 60px;
+  }
+
+  .intro-has-save .intro-foot {
+    margin-top: 8px;
+  }
+
   .mode {
     flex: 1;
     flex-direction: column;
@@ -375,15 +423,17 @@
   }
 
   .mode-back {
-    margin-top: 14px;
-    height: 34px;
+    margin-top: 12px;
+    height: 56px;
+    border-radius: 17px;
+    background-color: #211b28;
     align-items: center;
     justify-content: center;
   }
 
   .mode-back-text {
-    color: #7f7286;
-    font-size: 13px;
+    color: #f4ebf4;
+    font-size: 17px;
   }
 
   .target-option {
@@ -463,6 +513,18 @@
   .avatar-text {
     color: #ffd3d9;
     font-size: 21px;
+  }
+
+  .avatar-cold {
+    border-color: #9aa7b8;
+  }
+
+  .avatar-low {
+    border-color: #b8a9be;
+  }
+
+  .avatar-high {
+    border-color: #ff8fa3;
   }
 
   .identity {
@@ -553,6 +615,28 @@
     lines: 3;
   }
 
+  .tone-text {
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top-width: 1px;
+    border-top-color: #4a3c52;
+    font-size: 14px;
+    line-height: 19px;
+    lines: 3;
+  }
+
+  .tone-cold {
+    color: #9aa7b8;
+  }
+
+  .tone-low {
+    color: #b8a9be;
+  }
+
+  .tone-high {
+    color: #ffb3bf;
+  }
+
   .loading-card {
     height: 96px;
     border-radius: 18px;
@@ -632,14 +716,30 @@
     text-align: center;
     lines: 2;
   }
+
+  .day-complete .primary-button {
+    height: 56px;
+  }
+
+  .affection-summary {
+    margin-top: 6px;
+    color: #ffb3bf;
+    font-size: 14px;
+    line-height: 19px;
+    text-align: center;
+    lines: 2;
+  }
 </style>
 
 <script>
   import STORY from '../../data/story_meta.js'
   import SCENE_COMPRESSED from '../../data/scene_compressed.js'
   import LZString from '../../utils/lz-string.js'
+  const persistentStorage = require('@blueos.storage.storage')
 
   const BACKGROUND = '你认识一个很在意的人，已经三个月。今晚一起加班后，你们在便利店门口遇到大雨。TA站在你旁边，手里只有一杯热咖啡。'
+  const SAVE_KEY = 'evening_chat_save_v1'
+  const SAVE_VERSION = 1
   const ACTION_BY_ID = {}
   const HOTEL_ACTION_BY_ID = {}
   let CURRENT_SCENE = null
@@ -693,12 +793,6 @@
     return lines[Math.floor(Math.random() * lines.length)]
   }
 
-  function splitLines(text) {
-    const lines = String(text || '').replace(/\r/g, '').split('\n')
-    while (lines.length && lines[lines.length - 1] === '') lines.pop()
-    return lines
-  }
-
   function sceneInfo(id) {
     for (let i = 0; i < STORY.scenes.length; i++) {
       if (STORY.scenes[i].id === id) return STORY.scenes[i]
@@ -706,65 +800,53 @@
     return null
   }
 
-  function parseScene(id, text) {
-    const lines = splitLines(text)
-    const layout = STORY.layout
-    const expected = layout.sceneActionCount * layout.scenePoolSize +
-      layout.sceneAmbientSize + layout.sceneTransitionSize
-    if (lines.length < expected) throw new Error('Scene data incomplete: ' + id)
-
-    const pools = {}
-    let cursor = 0
-    for (let i = 0; i < STORY.actions.length; i++) {
-      const actionId = STORY.actions[i].id
-      pools[actionId] = lines.slice(cursor, cursor + layout.scenePoolSize)
-      cursor += layout.scenePoolSize
-    }
-    const ambient = lines.slice(cursor, cursor + layout.sceneAmbientSize).join('\n')
-    cursor += layout.sceneAmbientSize
-    const transitions = lines.slice(cursor, cursor + layout.sceneTransitionSize).join('\n')
+  function decodeScene(id) {
+    const data = SCENE_COMPRESSED[id]
+    if (!data || !data.ambient || !data.transitions) return null
+    const ambient = LZString.decompressFromEncodedURIComponent(data.ambient)
+    const transitions = LZString.decompressFromEncodedURIComponent(data.transitions)
+    if (!ambient || !transitions) return null
     const info = sceneInfo(id)
-
     return {
       id: id,
       name: info ? info.name : id,
-      pools: pools,
+      pools: data.pools || {},
       ambient: ambient,
-      transitions: transitions
+      transitions: transitions,
+      tones: data.tones || {}
     }
-  }
-
-  function parseHotel(text) {
-    const lines = splitLines(text)
-    const layout = STORY.layout
-    const expected = STORY.hotelActions.length * layout.hotelPoolSize + layout.hotelAmbientSize
-    if (lines.length < expected) throw new Error('Hotel data incomplete')
-
-    const pools = {}
-    let cursor = 0
-    for (let i = 0; i < STORY.hotelActions.length; i++) {
-      const actionId = STORY.hotelActions[i].id
-      pools[actionId] = lines.slice(cursor, cursor + layout.hotelPoolSize)
-      cursor += layout.hotelPoolSize
-    }
-    const ambient = lines.slice(cursor, cursor + layout.hotelAmbientSize).join('\n')
-    return { pools: pools, ambient: ambient }
-  }
-
-  function decodeScene(id) {
-    const compressed = SCENE_COMPRESSED[id]
-    if (!compressed) return null
-    const text = LZString.decompressFromEncodedURIComponent(compressed)
-    if (!text) return null
-    return parseScene(id, text)
   }
 
   function decodeHotel() {
-    const compressed = SCENE_COMPRESSED.hotel
-    if (!compressed) return null
-    const text = LZString.decompressFromEncodedURIComponent(compressed)
-    if (!text) return null
-    return parseHotel(text)
+    const data = SCENE_COMPRESSED.hotel
+    if (!data || !data.ambient) return null
+    const ambient = LZString.decompressFromEncodedURIComponent(data.ambient)
+    if (!ambient) return null
+    return { pools: data.pools || {}, ambient: ambient }
+  }
+
+  function readSavedGame() {
+    try {
+      const raw = persistentStorage.getSync({ key: SAVE_KEY })
+      if (!raw) return null
+      const data = typeof raw === 'string' ? JSON.parse(raw) : raw
+      if (!data || data.version !== SAVE_VERSION) return null
+      return data
+    } catch (error) {
+      return null
+    }
+  }
+
+  function writeSavedGame(data) {
+    try {
+      persistentStorage.set({
+        key: SAVE_KEY,
+        value: JSON.stringify(data)
+      })
+      return true
+    } catch (error) {
+      return false
+    }
   }
 
   export default {
@@ -774,6 +856,17 @@
       characterName: '林知夏',
       avatarText: '夏',
       relationshipLabel: '恋爱中',
+      affection: 60,
+      stageName: '好感',
+      band: 'high',
+      avatarClass: 'avatar-high',
+      dayStartAffection: 60,
+      dayAffectionDelta: 0,
+      lastActionId: '',
+      sameActionCount: 0,
+      usedToneKeys: [],
+      stageChangeText: '',
+      affectionSummary: '',
       day: 1,
       nextDay: 2,
       sceneId: '',
@@ -799,11 +892,15 @@
       loadingText: '正在加载场景…',
       loadError: false,
       pendingDay: 1,
-      pendingPhase: 'day'
+      pendingPhase: 'day',
+      hasSave: false,
+      saveSummary: '',
+      introClass: 'intro'
     },
 
     onInit() {
       this.view = 'intro'
+      this.refreshSaveState()
     },
 
     openModes() {
@@ -822,10 +919,158 @@
       this.view = 'modes'
     },
 
+    refreshSaveState() {
+      const save = readSavedGame()
+      this.hasSave = !!save
+      if (!save) {
+        this.saveSummary = ''
+        this.introClass = 'intro'
+        return
+      }
+      const place = save.phase === 'night'
+        ? (save.nightLabel || '夜晚')
+        : (save.sceneLabel || '')
+      this.saveSummary = '第' + (save.day || 1) + '天 · ' + place + ' · ' + (save.stageName || '普通')
+      this.introClass = 'intro intro-has-save'
+    },
+
+    saveGame() {
+      if (this.loading || this.loadError || this.dayComplete && !this.daySummary) return
+      const snapshot = {
+        version: SAVE_VERSION,
+        savedAt: Date.now(),
+        characterName: this.characterName,
+        avatarText: this.avatarText,
+        relationshipLabel: this.relationshipLabel,
+        day: this.day,
+        nextDay: this.nextDay,
+        sceneId: this.sceneId,
+        sceneLabel: this.sceneLabel,
+        phase: this.phase,
+        round: this.round,
+        maxRounds: this.maxRounds,
+        counter: this.counter,
+        transitionChance: this.transitionChance,
+        transitionsUsed: this.transitionsUsed,
+        nightKind: this.nightKind,
+        nightSourceId: this.nightSourceId,
+        nightLabel: this.nightLabel,
+        currentAction: this.currentAction,
+        chatRounds: this.chatRounds,
+        usedKeys: this.usedKeys,
+        usedToneKeys: this.usedToneKeys,
+        dayComplete: this.dayComplete,
+        daySummary: this.daySummary,
+        affectionSummary: this.affectionSummary,
+        affection: this.affection,
+        stageName: this.stageName,
+        band: this.band,
+        avatarClass: this.avatarClass,
+        dayStartAffection: this.dayStartAffection,
+        dayAffectionDelta: this.dayAffectionDelta,
+        lastActionId: this.lastActionId,
+        sameActionCount: this.sameActionCount,
+        stageChangeText: this.stageChangeText
+      }
+      if (writeSavedGame(snapshot)) {
+        this.hasSave = true
+        this.saveSummary = '第' + this.day + '天 · ' +
+          (this.phase === 'night' ? (this.nightLabel || '夜晚') : this.sceneLabel) +
+          ' · ' + this.stageName
+      }
+    },
+
+    continueGame() {
+      if (this.loading) return
+      const save = readSavedGame()
+      if (!save) {
+        this.refreshSaveState()
+        return
+      }
+
+      this.loading = true
+      this.loadingText = '正在恢复存档…'
+      this.loadError = false
+      this.pendingPhase = 'continue'
+      this.view = 'chat'
+      this.statusLine = '正在恢复存档…'
+      this.actions = []
+
+      let scene = null
+      try {
+        if (save.phase === 'night' && save.nightSourceId === 'hotel') {
+          HOTEL_DATA = decodeHotel()
+          if (!HOTEL_DATA) throw new Error('Hotel data missing')
+          scene = decodeScene('home')
+        } else if (save.phase === 'night') {
+          HOTEL_DATA = null
+          scene = decodeScene('home')
+          if (!scene) throw new Error('Home data missing')
+        } else {
+          HOTEL_DATA = null
+          scene = decodeScene(save.sceneId)
+          if (!scene) throw new Error('Scene data missing')
+        }
+
+        CURRENT_SCENE = scene
+        this.characterName = save.characterName || '林知夏'
+        this.avatarText = save.avatarText || this.characterName.slice(0, 1)
+        this.relationshipLabel = save.relationshipLabel || '恋爱中'
+        this.day = save.day || 1
+        this.nextDay = save.nextDay || this.day + 1
+        this.sceneId = save.sceneId || (scene ? scene.id : '')
+        this.sceneLabel = save.sceneLabel || (scene ? scene.name : '')
+        this.phase = save.phase || 'main'
+        this.round = save.round || 1
+        this.maxRounds = save.maxRounds || 10
+        this.counter = save.counter || (this.round + ' / 10')
+        this.transitionChance = typeof save.transitionChance === 'number' ? save.transitionChance : 0.10
+        this.transitionsUsed = save.transitionsUsed || 0
+        this.nightKind = save.nightKind || ''
+        this.nightSourceId = save.nightSourceId || ''
+        this.nightLabel = save.nightLabel || ''
+        this.currentAction = save.currentAction || ''
+        this.chatRounds = Array.isArray(save.chatRounds) ? save.chatRounds : []
+        this.usedKeys = Array.isArray(save.usedKeys) ? save.usedKeys : []
+        this.usedToneKeys = Array.isArray(save.usedToneKeys) ? save.usedToneKeys : []
+        this.dayComplete = !!save.dayComplete
+        this.daySummary = save.daySummary || ''
+        this.affectionSummary = save.affectionSummary || ''
+        this.affection = typeof save.affection === 'number' ? save.affection : 60
+        this.stageName = save.stageName || '普通'
+        this.band = save.band || 'low'
+        this.avatarClass = save.avatarClass || 'avatar-low'
+        this.dayStartAffection = typeof save.dayStartAffection === 'number'
+          ? save.dayStartAffection
+          : this.affection
+        this.dayAffectionDelta = typeof save.dayAffectionDelta === 'number'
+          ? save.dayAffectionDelta
+          : 0
+        this.lastActionId = save.lastActionId || ''
+        this.sameActionCount = save.sameActionCount || 0
+        this.stageChangeText = save.stageChangeText || ''
+        this.loading = false
+        this.loadError = false
+        this.updateAffectionDisplay()
+        this.actions = []
+        if (!this.dayComplete) this.buildActions()
+        this.scrollBottom = 1
+        const self = this
+        setTimeout(function () {
+          self.scrollBottom = 0
+        }, 30)
+      } catch (error) {
+        this.loading = true
+        this.loadError = true
+        this.loadingText = '存档恢复失败'
+      }
+    },
+
     startRomance() {
       this.characterName = '林知夏'
       this.avatarText = '夏'
       this.relationshipLabel = '恋爱中'
+      this.setStartingAffection('林知夏')
       this.startDay(1)
     },
 
@@ -833,7 +1078,22 @@
       this.characterName = name
       this.avatarText = name.slice(0, 1)
       this.relationshipLabel = '正在追求'
+      this.setStartingAffection(name)
       this.startDay(1)
+    },
+
+    setStartingAffection(name) {
+      const affectionConfig = STORY.affection || {}
+      const starts = affectionConfig.start || {}
+      this.affection = typeof starts[name] === 'number' ? starts[name] : 40
+      this.dayStartAffection = this.affection
+      this.dayAffectionDelta = 0
+      this.lastActionId = ''
+      this.sameActionCount = 0
+      this.usedToneKeys = []
+      this.stageChangeText = ''
+      this.affectionSummary = ''
+      this.updateAffectionDisplay()
     },
 
     startDay(dayNumber) {
@@ -853,7 +1113,7 @@
         if (!scene) throw new Error('Missing scene: ' + target.id)
         this.applyDay(dayNumber, scene)
       } catch (error) {
-        this.loading = false
+        this.loading = true
         this.loadError = true
         this.loadingText = '场景加载失败'
       }
@@ -875,10 +1135,17 @@
       this.nightSourceId = ''
       this.nightLabel = ''
       this.currentAction = ''
-      this.statusLine = '第' + this.day + '天 · ' + this.sceneLabel
       this.chatRounds = []
       this.scrollBottom = 0
-      this.addRound('', randomLine(scene.ambient), '')
+      this.dayStartAffection = this.affection
+      this.dayAffectionDelta = 0
+      this.lastActionId = ''
+      this.sameActionCount = 0
+      this.usedToneKeys = []
+      this.stageChangeText = ''
+      this.affectionSummary = ''
+      this.updateAffectionDisplay()
+      this.addRound('', randomLine(scene.ambient), '', '', '')
       this.usedKeys = []
       this.dayComplete = false
       this.daySummary = ''
@@ -886,6 +1153,7 @@
       this.loadError = false
       this.view = 'chat'
       this.buildActions()
+      this.saveGame()
     },
 
     buildActions() {
@@ -903,6 +1171,123 @@
           tag: this.phase === 'night' ? '夜间' : '第' + this.round + '轮'
         }
       }, this)
+    },
+
+    updateAffectionDisplay() {
+      const config = STORY.affection || {}
+      const stages = config.stages || []
+      const bands = config.bands || []
+      let stage = stages[0] || { name: '普通' }
+      for (let i = 0; i < stages.length; i++) {
+        if (this.affection >= stages[i].min) stage = stages[i]
+      }
+      let band = bands[0] || { id: 'low' }
+      for (let i = 0; i < bands.length; i++) {
+        if (this.affection >= bands[i].min && this.affection <= bands[i].max) band = bands[i]
+      }
+      this.stageName = stage.name
+      this.band = band.id
+      this.avatarClass = band.id === 'high'
+        ? 'avatar-high'
+        : band.id === 'low' ? 'avatar-low' : 'avatar-cold'
+      this.updateStatusLine()
+    },
+
+    updateStatusLine() {
+      const stage = this.stageName || ''
+      if (this.phase === 'night') {
+        this.statusLine = '第' + this.day + '天 · ' + (this.nightLabel || '夜晚') + ' · ' + stage
+      } else {
+        this.statusLine = '第' + this.day + '天 · ' + (this.sceneLabel || '') + ' · ' + stage
+      }
+    },
+
+    applyAffection(actionId) {
+      const config = STORY.affection || {}
+      const rules = config.actionDeltas || {}
+      const rule = rules[actionId]
+      if (!rule) {
+        return { delta: 0, stageChanged: false, fromStage: this.stageName, toStage: this.stageName }
+      }
+
+      let delta = typeof rule.min === 'number' && this.affection < rule.min
+        ? rule.low
+        : rule.delta
+      if (this.lastActionId === actionId) {
+        this.sameActionCount = this.sameActionCount + 1
+      } else {
+        this.lastActionId = actionId
+        this.sameActionCount = 1
+      }
+      if (delta > 0 && this.sameActionCount === 2) {
+        const second = config.diminishing ? config.diminishing.second : 0.5
+        delta = Math.floor(delta * second)
+      } else if (delta > 0 && this.sameActionCount >= 3) {
+        delta = config.diminishing ? config.diminishing.third : 0
+      }
+
+      const before = this.affection
+      const fromStage = this.stageName
+      this.affection = Math.max(0, Math.min(100, this.affection + delta))
+      const actual = this.affection - before
+      this.dayAffectionDelta = this.dayAffectionDelta + actual
+      this.updateAffectionDisplay()
+      const stageChanged = fromStage !== this.stageName
+      if (stageChanged) {
+        this.stageChangeText = '关系阶段：' + fromStage + ' → ' + this.stageName + '。'
+      }
+      return {
+        delta: actual,
+        stageChanged: stageChanged,
+        fromStage: fromStage,
+        toStage: this.stageName
+      }
+    },
+
+    pickTone(actionId) {
+      if (this.phase !== 'main') return ''
+      const band = this.band
+      let poolSource = null
+      let keyPrefix = ''
+      const reactions = SCENE_COMPRESSED.reactions || {}
+      if (reactions[actionId] && reactions[actionId][band]) {
+        poolSource = reactions[actionId][band]
+        keyPrefix = 'reaction:' + actionId + ':' + band
+      } else if (CURRENT_SCENE && CURRENT_SCENE.tones && CURRENT_SCENE.tones[band]) {
+        poolSource = CURRENT_SCENE.tones[band]
+        keyPrefix = 'tone:' + this.sceneId + ':' + band
+      }
+      if (!poolSource) return ''
+      const chunks = Array.isArray(poolSource) ? poolSource : [poolSource]
+      const chunkIndex = Math.floor(Math.random() * chunks.length)
+      const text = LZString.decompressFromEncodedURIComponent(chunks[chunkIndex])
+      if (!text) return ''
+      const lines = String(text).split('\n')
+      const start = Math.floor(Math.random() * lines.length)
+      let selected = start
+      for (let i = 0; i < lines.length; i++) {
+        const candidate = (start + i) % lines.length
+        const key = keyPrefix + ':' + chunkIndex + ':' + candidate
+        if (this.usedToneKeys.indexOf(key) < 0) {
+          selected = candidate
+          this.usedToneKeys.push(key)
+          break
+        }
+      }
+      return lines[selected]
+    },
+
+    buildAffectionSummary() {
+      const delta = this.dayAffectionDelta
+      let text
+      if (delta >= 5) text = '今天她明显更愿意靠近你了。'
+      else if (delta > 0) text = '今天你们之间的距离近了一点。'
+      else if (delta === 0) text = '今天的关系没有什么变化。'
+      else if (delta >= -4) text = '她好像还有一点在意刚才的事。'
+      else text = '她今天有些疏远你。'
+      return this.stageChangeText
+        ? this.stageChangeText + ' ' + text
+        : text
     },
 
     actionIdsForRound() {
@@ -929,16 +1314,18 @@
       const response = this.pickLine(picked.id)
 
       if (this.phase === 'main') {
+        this.applyAffection(picked.id)
+        const tone = this.pickTone(picked.id)
         if (this.round >= 10) {
-          this.addRound(picked.label, response, '')
+          this.addRound(picked.label, response, '', tone, this.band)
           this.startNight()
           return
         }
-        this.advanceMainRound(picked.label, response)
+        this.advanceMainRound(picked.label, response, tone)
         return
       }
 
-      this.addRound(picked.label, response, '')
+      this.addRound(picked.label, response, '', '', '')
       if (this.round >= 10) {
         this.finishNight()
         return
@@ -946,12 +1333,13 @@
       this.round = this.round + 1
       this.counter = this.round + ' / 10'
       this.buildActions()
+      this.saveGame()
     },
 
-    advanceMainRound(label, response) {
+    advanceMainRound(label, response, tone) {
       const target = this.pickTransitionTarget()
       if (!target) {
-        this.finishMainRound(label, response, '')
+        this.finishMainRound(label, response, '', tone)
         return
       }
 
@@ -967,7 +1355,7 @@
         scene = null
       }
       if (!scene) {
-        self.finishMainRound(label, response, '')
+        self.finishMainRound(label, response, '', tone)
         return
       }
 
@@ -979,16 +1367,17 @@
         STORY.balance.minTransitionChance,
         self.transitionChance - STORY.balance.transitionStep
       )
-      self.statusLine = '第' + self.day + '天 · ' + self.sceneLabel
-      self.finishMainRound(label, response, randomLine(scene.transitions))
+      self.updateAffectionDisplay()
+      self.finishMainRound(label, response, randomLine(scene.transitions), tone)
     },
 
-    finishMainRound(label, response, transition) {
+    finishMainRound(label, response, transition, tone) {
       this.loading = false
-      this.addRound(label, response, transition)
+      this.addRound(label, response, transition, tone, this.band)
       this.round = this.round + 1
       this.counter = this.round + ' / 10'
       this.buildActions()
+      this.saveGame()
     },
 
     pickTransitionTarget() {
@@ -1015,7 +1404,9 @@
       if (!pool && CURRENT_SCENE) pool = CURRENT_SCENE.pools[actionId]
       if (!pool) return ''
 
-      const lines = Array.isArray(pool) ? pool : String(pool).split('\n')
+      const text = LZString.decompressFromEncodedURIComponent(pool)
+      if (!text) return ''
+      const lines = String(text).split('\n')
       const start = Math.floor(Math.random() * lines.length)
       let selected = start
       for (let i = 0; i < lines.length; i++) {
@@ -1059,10 +1450,12 @@
       if (outcome.id === 'parent') {
         this.loading = false
         this.phase = 'main'
-        this.addRound('', outcomeLine, '')
+        this.addRound('', outcomeLine, '', '', '')
         this.dayComplete = true
         this.daySummary = '家长要求你回家 · 今天结束'
+        this.affectionSummary = this.buildAffectionSummary()
         this.actions = []
+        this.saveGame()
         return
       }
 
@@ -1087,6 +1480,7 @@
         self.currentAction = ''
         self.dayComplete = false
         self.daySummary = ''
+        self.affectionSummary = ''
         self.loading = false
         self.loadError = false
 
@@ -1104,13 +1498,14 @@
           self.nightLabel = outcome.id === 'her_empty' ? '她的家' : '你的家'
         }
 
-        self.statusLine = '第' + self.day + '天 · ' + self.nightLabel + ' · 夜间'
-        self.addRound('', outcomeLine, notice || '')
+        self.updateAffectionDisplay()
+        self.addRound('', outcomeLine, notice || '', '', '')
         self.buildActions()
+        self.saveGame()
       }
 
       function failNight() {
-        self.loading = false
+        self.loading = true
         self.loadError = true
         self.loadingText = '夜晚加载失败'
       }
@@ -1128,13 +1523,20 @@
     retryLoad() {
       if (!this.loadError) return
       this.loadError = false
-      if (this.pendingPhase === 'night') this.startNight()
+      if (this.pendingPhase === 'continue') this.continueGame()
+      else if (this.pendingPhase === 'night') this.startNight()
       else this.startDay(this.pendingDay || this.day)
     },
 
-    addRound(you, her, note) {
+    addRound(you, her, note, tone, toneBand) {
       const next = this.chatRounds.slice()
-      next.push({ you: you || '', her: her || '', note: note || '' })
+      next.push({
+        you: you || '',
+        her: her || '',
+        note: note || '',
+        tone: tone || '',
+        toneClass: tone ? 'tone-' + (toneBand || this.band) : ''
+      })
       if (next.length > 10) next.shift()
       this.chatRounds = next
       // 先触发一次 scroll-bottom 更新，等新气泡完成布局后再贴到最底部。
@@ -1149,8 +1551,10 @@
       this.loading = false
       this.dayComplete = true
       this.daySummary = '她太困了，说着说着睡着了 · 夜间结束'
+      this.affectionSummary = this.buildAffectionSummary()
       this.counter = '10 / 10'
       this.actions = []
+      this.saveGame()
     },
 
     nextDay() {
