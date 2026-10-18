@@ -745,6 +745,7 @@
   const BACKGROUND = '你认识一个很在意的人，已经三个月。今晚一起加班后，你们在便利店门口遇到大雨。TA站在你旁边，手里只有一杯热咖啡。'
   const SAVE_KEY = 'evening_chat_save_v1'
   const SAVE_VERSION = 1
+  const CHAT_HISTORY_LIMIT = 8
   const ACTION_BY_ID = {}
   const HOTEL_ACTION_BY_ID = {}
   let CURRENT_SCENE = null
@@ -1546,7 +1547,7 @@
         tone: tone || '',
         toneClass: tone ? 'tone-' + (toneBand || this.band) : ''
       })
-      if (next.length > 10) next.shift()
+      if (next.length > CHAT_HISTORY_LIMIT) next.shift()
       this.chatRounds = next
       if (scroll !== false) {
         // 先触发一次 scroll-bottom 更新，等新气泡完成布局后再贴到最底部。

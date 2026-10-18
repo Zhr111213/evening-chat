@@ -358,7 +358,7 @@
     function addRound(you, her, note = "") {
       const next = (state.chatRounds || []).slice();
       next.push({ you: you || "", her: her || "", note: note || "" });
-      if (next.length > 10) next.shift();
+      if (next.length > 8) next.shift();
       state.chatRounds = next;
       renderChat();
     }
