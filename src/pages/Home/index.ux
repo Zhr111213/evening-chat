@@ -735,7 +735,12 @@
   import STORY from '../../data/story_meta.js'
   import SCENE_COMPRESSED from '../../data/scene_compressed.js'
   import LZString from '../../utils/lz-string.js'
-  const persistentStorage = require('@blueos.storage.storage')
+  let persistentStorage = null
+  try {
+    persistentStorage = require('@blueos.storage.storage')
+  } catch (error) {
+    persistentStorage = null
+  }
 
   const BACKGROUND = '你认识一个很在意的人，已经三个月。今晚一起加班后，你们在便利店门口遇到大雨。TA站在你旁边，手里只有一杯热咖啡。'
   const SAVE_KEY = 'evening_chat_save_v1'
@@ -802,17 +807,14 @@
 
   function decodeScene(id) {
     const data = SCENE_COMPRESSED[id]
-    if (!data || !data.ambient || !data.transitions) return null
-    const ambient = LZString.decompressFromEncodedURIComponent(data.ambient)
-    const transitions = LZString.decompressFromEncodedURIComponent(data.transitions)
-    if (!ambient || !transitions) return null
+    if (!data || !data.transitions) return null
     const info = sceneInfo(id)
     return {
       id: id,
       name: info ? info.name : id,
+      open: data.open || '',
       pools: data.pools || {},
-      ambient: ambient,
-      transitions: transitions,
+      transitions: data.transitions,
       tones: data.tones || {}
     }
   }
@@ -826,6 +828,7 @@
   }
 
   function readSavedGame() {
+    if (!persistentStorage) return null
     try {
       const raw = persistentStorage.getSync({ key: SAVE_KEY })
       if (!raw) return null
@@ -838,6 +841,7 @@
   }
 
   function writeSavedGame(data) {
+    if (!persistentStorage) return false
     try {
       persistentStorage.set({
         key: SAVE_KEY,
@@ -1145,7 +1149,7 @@
       this.stageChangeText = ''
       this.affectionSummary = ''
       this.updateAffectionDisplay()
-      this.addRound('', randomLine(scene.ambient), '', '', '')
+      this.addRound('', scene.open || '晚风从你们之间吹过去，周围安静下来。', '', '', '', false)
       this.usedKeys = []
       this.dayComplete = false
       this.daySummary = ''
@@ -1153,7 +1157,6 @@
       this.loadError = false
       this.view = 'chat'
       this.buildActions()
-      this.saveGame()
     },
 
     buildActions() {
@@ -1368,7 +1371,13 @@
         self.transitionChance - STORY.balance.transitionStep
       )
       self.updateAffectionDisplay()
-      self.finishMainRound(label, response, randomLine(scene.transitions), tone)
+      const transitionText = LZString.decompressFromEncodedURIComponent(scene.transitions)
+      self.finishMainRound(
+        label,
+        response,
+        transitionText ? randomLine(transitionText) : '',
+        tone
+      )
     },
 
     finishMainRound(label, response, transition, tone) {
@@ -1528,7 +1537,7 @@
       else this.startDay(this.pendingDay || this.day)
     },
 
-    addRound(you, her, note, tone, toneBand) {
+    addRound(you, her, note, tone, toneBand, scroll) {
       const next = this.chatRounds.slice()
       next.push({
         you: you || '',
@@ -1539,12 +1548,14 @@
       })
       if (next.length > 10) next.shift()
       this.chatRounds = next
-      // 先触发一次 scroll-bottom 更新，等新气泡完成布局后再贴到最底部。
-      this.scrollBottom = 1
-      const self = this
-      setTimeout(function () {
-        self.scrollBottom = 0
-      }, 30)
+      if (scroll !== false) {
+        // 先触发一次 scroll-bottom 更新，等新气泡完成布局后再贴到最底部。
+        this.scrollBottom = 1
+        const self = this
+        setTimeout(function () {
+          self.scrollBottom = 0
+        }, 30)
+      }
     },
 
     finishNight() {

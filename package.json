@@ -1,6 +1,6 @@
 {
   "name": "evening-chat",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "packageManager": "pnpm@^9.9.0",
   "description": "A lightweight dialogue-only romance game for vivo WATCH GT 2 / BlueOS.",
   "private": true,

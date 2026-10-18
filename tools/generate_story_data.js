@@ -1118,6 +1118,7 @@ for (const scene of scenes) {
   const sceneData = {
     id: scene.id,
     name: scene.name,
+    open: ambientLines[0],
     pools,
     ambient: toBlob(ambientLines),
     transitions: toBlob(transitionLines),
@@ -1132,6 +1133,7 @@ for (const scene of scenes) {
     compressedPools[action.id] = LZString.compressToEncodedURIComponent(pools[action.id]);
   }
   compressedScenes[scene.id] = {
+    open: ambientLines[0],
     ambient: LZString.compressToEncodedURIComponent(toBlob(ambientLines)),
     transitions: LZString.compressToEncodedURIComponent(toBlob(transitionLines)),
     pools: compressedPools,
