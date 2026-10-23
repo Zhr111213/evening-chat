@@ -748,6 +748,8 @@
   const REACTION_TRANSFER_KEY = 'evening_chat_reaction_cache_v1'
   const SAVE_VERSION = 1
   const CHAT_HISTORY_LIMIT = 8
+  const RECOVERY_ACTIONS = ['a12', 'a15', 'a27']
+  const SAFE_FILL_ACTIONS = ['a01', 'a04', 'a15', 'a27']
   const ACTION_BY_ID = {}
   const HOTEL_ACTION_BY_ID = {}
   let REACTION_DATA = null
@@ -895,6 +897,7 @@
       sameActionCount: 0,
       usedToneKeys: [],
       stageChangeText: '',
+      lastOutcome: '',
       affectionSummary: '',
       day: 1,
       nextDay: 2,
@@ -1008,7 +1011,8 @@
         dayAffectionDelta: this.dayAffectionDelta,
         lastActionId: this.lastActionId,
         sameActionCount: this.sameActionCount,
-        stageChangeText: this.stageChangeText
+        stageChangeText: this.stageChangeText,
+        lastOutcome: this.lastOutcome
       }
       if (writeSavedGame(snapshot)) {
         this.hasSave = true
@@ -1189,6 +1193,7 @@
         this.lastActionId = save.lastActionId || ''
         this.sameActionCount = save.sameActionCount || 0
         this.stageChangeText = save.stageChangeText || ''
+        this.lastOutcome = save.lastOutcome || ''
         this.loading = false
         this.loadError = false
         this.updateAffectionDisplay()
@@ -1232,6 +1237,7 @@
       this.sameActionCount = 0
       this.usedToneKeys = []
       this.stageChangeText = ''
+      this.lastOutcome = ''
       this.affectionSummary = ''
       this.updateAffectionDisplay()
     },
@@ -1272,6 +1278,7 @@
       this.sameActionCount = 0
       this.usedToneKeys = []
       this.stageChangeText = ''
+      this.lastOutcome = ''
       this.affectionSummary = ''
       this.updateAffectionDisplay()
       this.addRound('', scene.open || '晚风从你们之间吹过去，周围安静下来。', '', '', '', false)
@@ -1439,8 +1446,19 @@
         }
         return NEXT_ACTIONS[this.currentAction] || NIGHT_START_HOME
       }
-      if (this.round === 1) return START_ACTIONS
-      return NEXT_ACTIONS[this.currentAction] || START_ACTIONS
+      if (this.round > 1 && this.lastOutcome === 'negative') {
+        return RECOVERY_ACTIONS
+      }
+      const suggested = this.round === 1
+        ? START_ACTIONS.slice()
+        : (NEXT_ACTIONS[this.currentAction] || START_ACTIONS).slice()
+      const ids = suggested.filter(function (id) {
+        return this.round >= 10 || (id !== 'a28' && id !== 'a30')
+      }, this)
+      for (let i = 0; i < SAFE_FILL_ACTIONS.length && ids.length < 3; i++) {
+        if (ids.indexOf(SAFE_FILL_ACTIONS[i]) < 0) ids.push(SAFE_FILL_ACTIONS[i])
+      }
+      return ids.slice(0, 3)
     },
 
     chooseAction(index) {
@@ -1449,11 +1467,19 @@
       if (!picked || this.dayComplete) return
 
       this.currentAction = picked.id
-      const response = this.pickLine(picked.id)
+      let response = this.pickLine(picked.id)
 
       if (this.phase === 'main') {
         this.applyAffection(picked.id)
-        const tone = this.pickTone(picked.id)
+        let tone = this.pickTone(picked.id)
+        const riskyActions = STORY.affection.riskyActions || []
+        if (this.band === 'cold' && riskyActions.indexOf(picked.id) >= 0 && tone) {
+          response = tone
+          tone = ''
+        }
+        this.lastOutcome = this.band === 'cold'
+          ? 'negative'
+          : this.band === 'high' ? 'positive' : 'neutral'
         if (this.round >= 10) {
           this.addRound(picked.label, response, '', tone, this.band)
           this.startNight()
@@ -1557,11 +1583,21 @@
       for (let i = 0; i < available.length; i++) total += available[i].weight
       let cursor = Math.random() * total
       let outcome = available[available.length - 1]
-      for (let i = 0; i < available.length; i++) {
-        cursor -= available[i].weight
-        if (cursor <= 0) {
-          outcome = available[i]
-          break
+      if (this.currentAction === 'a28') {
+        outcome = STORY.night.outcomes.find(function (item) {
+          return item.id === 'her_home'
+        }) || outcome
+      } else if (this.currentAction === 'a30') {
+        outcome = STORY.night.outcomes.find(function (item) {
+          return item.id === 'parent'
+        }) || outcome
+      } else {
+        for (let i = 0; i < available.length; i++) {
+          cursor -= available[i].weight
+          if (cursor <= 0) {
+            outcome = available[i]
+            break
+          }
         }
       }
 

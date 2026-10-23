@@ -251,7 +251,7 @@ const HOTEL_ACTIONS = [
   },
   {
     "id": "h26",
-    "label": "她靠过来",
+    "label": "让她靠肩",
     "group": "movie"
   },
   {
@@ -507,7 +507,7 @@ export default {
   }
 },
   counts: {
-  "generatedAt": "2026-10-23T13:55:14.349Z",
+  "generatedAt": "2026-10-23T14:20:58.185Z",
   "sceneCount": 10,
   "scenePoolLines": 45000,
   "sceneAmbientLines": 5000,
