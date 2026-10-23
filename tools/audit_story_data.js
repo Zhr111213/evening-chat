@@ -33,6 +33,7 @@ const sceneIds = [
 const outdoorScenes = ["park", "seaside", "market", "busstop", "riverside"];
 const allLines = [];
 const sceneReports = [];
+const forbiddenDayTerms = /浴室|开房|床上|被窝|酒店/;
 
 for (const sceneId of sceneIds) {
   const scene = parseDefaultModule(path.join(dataRoot, "scenes", `${sceneId}.js`));
@@ -64,6 +65,11 @@ for (const sceneId of sceneIds) {
     toneLines.push(...lines);
   }
   const sceneLines = contentLines.concat(toneLines, transitions);
+  const dayPoolLines = contentLines.concat(transitions);
+  const dayLeaks = dayPoolLines.filter((line) => forbiddenDayTerms.test(line));
+  if (dayLeaks.length > 0) {
+    throw new Error(`${sceneId} has night-only wording in daytime: ${dayLeaks.slice(0, 3).join(" | ")}`);
+  }
   if (!outdoorScenes.includes(sceneId)) {
     const outdoorLeaks = sceneLines.filter((line) =>
       /晚风|夜风|街声|雨后的光|风把/.test(line)
@@ -111,6 +117,14 @@ for (const outcome of night.outcomes) {
 if (nightCount !== 50) {
   throw new Error(`night expected 50 lines, got ${nightCount}`);
 }
+const herHomeOutcome = night.outcomes.find((outcome) => outcome.id === "her_home");
+const yourHomeOutcome = night.outcomes.find((outcome) => outcome.id === "your_empty");
+if (herHomeOutcome.lines.some((line) => line.startsWith("你说想回自己家"))) {
+  throw new Error("her_home still assigns the woman's action to the player");
+}
+if (yourHomeOutcome.lines.some((line) => line.startsWith("我说家里今天没人"))) {
+  throw new Error("your_empty still assigns the player's invitation to the woman");
+}
 
 const reactionRaw = parseDefaultModule(path.join(dataRoot, "reaction_page.js"));
 const reaction = JSON.parse(LZString.decompressFromEncodedURIComponent(reactionRaw));
@@ -118,7 +132,21 @@ if (reaction.version !== 1 || reaction.ids.length !== 10) {
   throw new Error("reaction data has an invalid shape");
 }
 let reactionCount = 0;
-for (const actionPools of reaction.pools) {
+const riskyContextPhrases = {
+  a07: "牵住我的手",
+  a08: "靠近我",
+  a10: "喂我吃东西",
+  a13: "摸我的头发",
+  a16: "抱住我",
+  a19: "靠在我的肩上",
+  a20: "把手放在我的腿上",
+  a22: "告诉我你喜欢我",
+  a23: "问我的心意",
+  a26: "吻我的额头"
+};
+for (let actionIndex = 0; actionIndex < reaction.pools.length; actionIndex++) {
+  const actionPools = reaction.pools[actionIndex];
+  const actionId = reaction.ids[actionIndex];
   if (actionPools.length !== reaction.bands.length) {
     throw new Error("reaction action has an invalid tone-band count");
   }
@@ -127,6 +155,10 @@ for (const actionPools of reaction.pools) {
       throw new Error(`reaction pool expected 35 lines, got ${pool.length}`);
     }
     reactionCount += pool.length;
+    const contextPhrase = riskyContextPhrases[actionId];
+    if (pool.some((line) => !line.includes(contextPhrase))) {
+      throw new Error(`reaction/${actionId} contains a mismatched action context`);
+    }
     allLines.push(...pool);
   }
 }

@@ -1473,7 +1473,11 @@
         this.applyAffection(picked.id)
         let tone = this.pickTone(picked.id)
         const riskyActions = STORY.affection.riskyActions || []
-        if (this.band === 'cold' && riskyActions.indexOf(picked.id) >= 0 && tone) {
+        const riskyLowResult =
+          this.band === 'low' && riskyActions.indexOf(picked.id) >= 0
+        const ordinaryColdResult =
+          this.band === 'cold' && picked.id !== 'a28' && picked.id !== 'a30'
+        if ((riskyLowResult || ordinaryColdResult) && tone) {
           response = tone
           tone = ''
         }

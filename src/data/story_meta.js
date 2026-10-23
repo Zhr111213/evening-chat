@@ -507,7 +507,7 @@ export default {
   }
 },
   counts: {
-  "generatedAt": "2026-10-23T14:20:58.185Z",
+  "generatedAt": "2026-10-23T14:54:25.995Z",
   "sceneCount": 10,
   "scenePoolLines": 45000,
   "sceneAmbientLines": 5000,
