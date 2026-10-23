@@ -1,0 +1,51 @@
+<template>
+  <div class="loader">
+    <text class="loader-text">正在加载…</text>
+  </div>
+</template>
+
+<style>
+  .loader {
+    width: 432px;
+    height: 514px;
+    background-color: #121018;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .loader-text {
+    color: #ffb3bf;
+    font-size: 20px;
+  }
+</style>
+
+<script>
+  import RAW from '../../data/scene_pages/market.js'
+  import LZString from '../../utils/lz-string.js'
+  const router = require('@blueos.app.appmanager.router')
+  const SCENE_TRANSFER_KEY = 'evening_chat_scene_transfer_v1'
+  let persistentStorage = null
+  try {
+    persistentStorage = require('@blueos.storage.storage')
+  } catch (error) {
+    persistentStorage = null
+  }
+  const root = typeof global !== 'undefined' ? global : {}
+
+  export default {
+    onInit() {
+      try {
+        const text = LZString.decompressFromEncodedURIComponent(RAW)
+        root.__EVENING_PENDING_SCENE__ = text ? JSON.parse(text) : null
+        if (text && persistentStorage) {
+          persistentStorage.set({ key: SCENE_TRANSFER_KEY, value: text })
+        }
+      } catch (error) {
+        root.__EVENING_PENDING_SCENE__ = null
+      }
+      setTimeout(function () {
+        router.back()
+      }, 30)
+    }
+  }
+</script>

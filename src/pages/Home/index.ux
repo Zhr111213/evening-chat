@@ -733,8 +733,7 @@
 
 <script>
   import STORY from '../../data/story_meta.js'
-  import SCENE_COMPRESSED from '../../data/scene_compressed.js'
-  import LZString from '../../utils/lz-string.js'
+  const router = require('@blueos.app.appmanager.router')
   let persistentStorage = null
   try {
     persistentStorage = require('@blueos.storage.storage')
@@ -744,10 +743,14 @@
 
   const BACKGROUND = '你认识一个很在意的人，已经三个月。今晚一起加班后，你们在便利店门口遇到大雨。TA站在你旁边，手里只有一杯热咖啡。'
   const SAVE_KEY = 'evening_chat_save_v1'
+  const LOAD_TRANSFER_KEY = 'evening_chat_load_transfer_v1'
+  const SCENE_TRANSFER_KEY = 'evening_chat_scene_transfer_v1'
+  const REACTION_TRANSFER_KEY = 'evening_chat_reaction_cache_v1'
   const SAVE_VERSION = 1
   const CHAT_HISTORY_LIMIT = 8
   const ACTION_BY_ID = {}
   const HOTEL_ACTION_BY_ID = {}
+  let REACTION_DATA = null
   let CURRENT_SCENE = null
   let HOTEL_DATA = null
 
@@ -799,33 +802,15 @@
     return lines[Math.floor(Math.random() * lines.length)]
   }
 
-  function sceneInfo(id) {
-    for (let i = 0; i < STORY.scenes.length; i++) {
-      if (STORY.scenes[i].id === id) return STORY.scenes[i]
-    }
-    return null
+  function globalRoot() {
+    if (typeof global !== 'undefined') return global
+    return {}
   }
 
-  function decodeScene(id) {
-    const data = SCENE_COMPRESSED[id]
-    if (!data || !data.transitions) return null
-    const info = sceneInfo(id)
-    return {
-      id: id,
-      name: info ? info.name : id,
-      open: data.open || '',
-      pools: data.pools || {},
-      transitions: data.transitions,
-      tones: data.tones || {}
-    }
-  }
-
-  function decodeHotel() {
-    const data = SCENE_COMPRESSED.hotel
-    if (!data || !data.ambient) return null
-    const ambient = LZString.decompressFromEncodedURIComponent(data.ambient)
-    if (!ambient) return null
-    return { pools: data.pools || {}, ambient: ambient }
+  function loaderPageForScene(sceneId) {
+    const id = String(sceneId || 'home')
+    if (id === 'hotel') return 'LoaderHotel'
+    return 'Loader' + id.charAt(0).toUpperCase() + id.slice(1)
   }
 
   function readSavedGame() {
@@ -852,6 +837,45 @@
     } catch (error) {
       return false
     }
+  }
+
+  function readStorageJson(key) {
+    if (!persistentStorage) return null
+    try {
+      const raw = persistentStorage.getSync({ key: key })
+      if (!raw) return null
+      return typeof raw === 'string' ? JSON.parse(raw) : raw
+    } catch (error) {
+      return null
+    }
+  }
+
+  function writeStorageValue(key, value) {
+    if (!persistentStorage) return false
+    try {
+      persistentStorage.set({ key: key, value: value || '' })
+      return true
+    } catch (error) {
+      return false
+    }
+  }
+
+  function readReactionData() {
+    if (REACTION_DATA) return REACTION_DATA
+    const root = globalRoot()
+    let data = root.__EVENING_REACTION_DATA__ || readStorageJson(REACTION_TRANSFER_KEY)
+    if (
+      data &&
+      data.version === 1 &&
+      Array.isArray(data.ids) &&
+      Array.isArray(data.bands) &&
+      Array.isArray(data.pools)
+    ) {
+      REACTION_DATA = data
+      root.__EVENING_REACTION_DATA__ = data
+      return data
+    }
+    return null
   }
 
   export default {
@@ -906,6 +930,15 @@
     onInit() {
       this.view = 'intro'
       this.refreshSaveState()
+      this.consumePendingScene()
+    },
+
+    onShow() {
+      this.consumePendingScene()
+    },
+
+    onRefresh() {
+      this.consumePendingScene()
     },
 
     openModes() {
@@ -985,6 +1018,117 @@
       }
     },
 
+    openLoader(sceneId, pending, loadingText) {
+      const root = globalRoot()
+      const loaderPage = loaderPageForScene(sceneId)
+      root.__EVENING_PENDING_SCENE__ = null
+      root.__EVENING_PENDING_LOAD__ = pending
+      root.__EVENING_LOADER_TARGET__ = loaderPage
+      writeStorageValue(LOAD_TRANSFER_KEY, JSON.stringify(pending))
+      CURRENT_SCENE = null
+      HOTEL_DATA = null
+      this.loading = true
+      this.loadingText = loadingText || '正在加载场景…'
+      this.loadError = false
+      this.view = 'chat'
+      this.statusLine = loadingText || '正在加载场景…'
+      this.actions = []
+      if (readReactionData()) {
+        router.push({ uri: '/pages/' + loaderPage })
+      } else {
+        router.push({ uri: '/pages/LoaderReaction' })
+      }
+    },
+
+    consumePendingScene() {
+      const root = globalRoot()
+      const scene = root.__EVENING_PENDING_SCENE__ ||
+        readStorageJson(SCENE_TRANSFER_KEY)
+      const pending = root.__EVENING_PENDING_LOAD__ ||
+        readStorageJson(LOAD_TRANSFER_KEY)
+      if (!scene || !pending) return
+      root.__EVENING_PENDING_SCENE__ = null
+      root.__EVENING_PENDING_LOAD__ = null
+      writeStorageValue(SCENE_TRANSFER_KEY, '')
+      writeStorageValue(LOAD_TRANSFER_KEY, '')
+      readReactionData()
+      this.loading = false
+      this.loadError = false
+      if (pending.kind === 'day') {
+        this.applyDay(pending.day, scene)
+      } else if (pending.kind === 'transition') {
+        this.applyLoadedTransition(scene, pending)
+      } else if (pending.kind === 'night') {
+        this.applyLoadedNight(scene, pending)
+      } else if (pending.kind === 'continue') {
+        this.applySavedGame(pending.save, scene)
+      } else {
+        this.loading = true
+        this.loadError = true
+        this.loadingText = '场景加载失败'
+      }
+    },
+
+    applyLoadedTransition(scene, pending) {
+      CURRENT_SCENE = scene
+      this.sceneId = scene.id
+      this.sceneLabel = scene.name
+      this.transitionsUsed = this.transitionsUsed + 1
+      this.transitionChance = Math.max(
+        STORY.balance.minTransitionChance,
+        this.transitionChance - STORY.balance.transitionStep
+      )
+      this.updateAffectionDisplay()
+      this.finishMainRound(
+        pending.label,
+        pending.response,
+        randomLine(scene.transitions),
+        pending.tone
+      )
+    },
+
+    applyLoadedNight(scene, pending) {
+      const useHotel = pending.outcome.id === 'hotel'
+      if (useHotel) {
+        HOTEL_DATA = scene
+        CURRENT_SCENE = null
+      } else {
+        CURRENT_SCENE = scene
+        HOTEL_DATA = null
+      }
+
+      this.phase = 'night'
+      this.round = 1
+      this.maxRounds = 10
+      this.counter = '1 / 10'
+      this.usedKeys = []
+      this.currentAction = ''
+      this.dayComplete = false
+      this.daySummary = ''
+      this.affectionSummary = ''
+      this.loading = false
+      this.loadError = false
+
+      if (useHotel) {
+        this.nightKind = 'hotel'
+        this.nightSourceId = 'hotel'
+        this.nightLabel = '酒店'
+      } else if (pending.outcome.id === 'her_home') {
+        this.nightKind = 'call'
+        this.nightSourceId = 'home'
+        this.nightLabel = '电话陪伴'
+      } else {
+        this.nightKind = 'home'
+        this.nightSourceId = 'home'
+        this.nightLabel = pending.outcome.id === 'her_empty' ? '她的家' : '你的家'
+      }
+
+      this.updateAffectionDisplay()
+      this.addRound('', pending.outcomeLine, pending.notice || '', '', '')
+      this.buildActions()
+      this.saveGame()
+    },
+
     continueGame() {
       if (this.loading) return
       const save = readSavedGame()
@@ -992,32 +1136,23 @@
         this.refreshSaveState()
         return
       }
-
-      this.loading = true
-      this.loadingText = '正在恢复存档…'
-      this.loadError = false
+      let sceneId = save.sceneId || 'home'
+      if (save.phase === 'night') {
+        sceneId = save.nightSourceId === 'hotel' ? 'hotel' : 'home'
+      }
       this.pendingPhase = 'continue'
-      this.view = 'chat'
-      this.statusLine = '正在恢复存档…'
-      this.actions = []
+      this.openLoader(sceneId, { kind: 'continue', save: save }, '正在恢复存档…')
+    },
 
-      let scene = null
-      try {
-        if (save.phase === 'night' && save.nightSourceId === 'hotel') {
-          HOTEL_DATA = decodeHotel()
-          if (!HOTEL_DATA) throw new Error('Hotel data missing')
-          scene = decodeScene('home')
-        } else if (save.phase === 'night') {
-          HOTEL_DATA = null
-          scene = decodeScene('home')
-          if (!scene) throw new Error('Home data missing')
-        } else {
-          HOTEL_DATA = null
-          scene = decodeScene(save.sceneId)
-          if (!scene) throw new Error('Scene data missing')
-        }
-
+    applySavedGame(save, scene) {
+      if (save.phase === 'night' && save.nightSourceId === 'hotel') {
+        HOTEL_DATA = scene
+        CURRENT_SCENE = null
+      } else {
+        HOTEL_DATA = null
         CURRENT_SCENE = scene
+      }
+      try {
         this.characterName = save.characterName || '林知夏'
         this.avatarText = save.avatarText || this.characterName.slice(0, 1)
         this.relationshipLabel = save.relationshipLabel || '恋爱中'
@@ -1102,26 +1237,15 @@
     },
 
     startDay(dayNumber) {
-      if (this.loading && !this.loadError) return
+      if (this.loading) return
       const target = STORY.scenes[Math.floor(Math.random() * STORY.scenes.length)]
-      this.view = 'chat'
-      this.loading = true
-      this.loadingText = '正在加载场景…'
-      this.loadError = false
       this.pendingDay = dayNumber
       this.pendingPhase = 'day'
-      this.statusLine = '正在加载场景…'
-      this.actions = []
-
-      try {
-        const scene = decodeScene(target.id)
-        if (!scene) throw new Error('Missing scene: ' + target.id)
-        this.applyDay(dayNumber, scene)
-      } catch (error) {
-        this.loading = true
-        this.loadError = true
-        this.loadingText = '场景加载失败'
-      }
+      this.openLoader(
+        target.id,
+        { kind: 'day', day: dayNumber, targetId: target.id },
+        '正在前往' + target.name + '…'
+      )
     },
 
     applyDay(dayNumber, scene) {
@@ -1253,20 +1377,30 @@
       const band = this.band
       let poolSource = null
       let keyPrefix = ''
-      const reactions = SCENE_COMPRESSED.reactions || {}
-      if (reactions[actionId] && reactions[actionId][band]) {
-        poolSource = reactions[actionId][band]
+      const reaction = readReactionData()
+      const actionIndex = reaction ? reaction.ids.indexOf(actionId) : -1
+      const bandIndex = reaction ? reaction.bands.indexOf(band) : -1
+      if (
+        reaction &&
+        actionIndex >= 0 &&
+        bandIndex >= 0 &&
+        reaction.pools[actionIndex] &&
+        reaction.pools[actionIndex][bandIndex]
+      ) {
+        poolSource = reaction.pools[actionIndex][bandIndex]
         keyPrefix = 'reaction:' + actionId + ':' + band
       } else if (CURRENT_SCENE && CURRENT_SCENE.tones && CURRENT_SCENE.tones[band]) {
         poolSource = CURRENT_SCENE.tones[band]
         keyPrefix = 'tone:' + this.sceneId + ':' + band
       }
       if (!poolSource) return ''
-      const chunks = Array.isArray(poolSource) ? poolSource : [poolSource]
+      const chunks = Array.isArray(poolSource) && Array.isArray(poolSource[0])
+        ? poolSource
+        : [poolSource]
       const chunkIndex = Math.floor(Math.random() * chunks.length)
-      const text = LZString.decompressFromEncodedURIComponent(chunks[chunkIndex])
-      if (!text) return ''
-      const lines = String(text).split('\n')
+      const lines = Array.isArray(chunks[chunkIndex])
+        ? chunks[chunkIndex]
+        : String(chunks[chunkIndex]).split('\n')
       const start = Math.floor(Math.random() * lines.length)
       let selected = start
       for (let i = 0; i < lines.length; i++) {
@@ -1346,38 +1480,17 @@
         this.finishMainRound(label, response, '', tone)
         return
       }
-
-      const self = this
-      this.loading = true
-      this.loadingText = '正在前往' + target.name + '…'
-      this.actions = []
-
-      let scene = null
-      try {
-        scene = decodeScene(target.id)
-      } catch (error) {
-        scene = null
-      }
-      if (!scene) {
-        self.finishMainRound(label, response, '', tone)
-        return
-      }
-
-      CURRENT_SCENE = scene
-      self.sceneId = scene.id
-      self.sceneLabel = scene.name
-      self.transitionsUsed = self.transitionsUsed + 1
-      self.transitionChance = Math.max(
-        STORY.balance.minTransitionChance,
-        self.transitionChance - STORY.balance.transitionStep
-      )
-      self.updateAffectionDisplay()
-      const transitionText = LZString.decompressFromEncodedURIComponent(scene.transitions)
-      self.finishMainRound(
-        label,
-        response,
-        transitionText ? randomLine(transitionText) : '',
-        tone
+      this.openLoader(
+        target.id,
+        {
+          kind: 'transition',
+          label: label,
+          response: response,
+          tone: tone,
+          targetId: target.id,
+          targetName: target.name
+        },
+        '正在前往' + target.name + '…'
       )
     },
 
@@ -1414,9 +1527,7 @@
       if (!pool && CURRENT_SCENE) pool = CURRENT_SCENE.pools[actionId]
       if (!pool) return ''
 
-      const text = LZString.decompressFromEncodedURIComponent(pool)
-      if (!text) return ''
-      const lines = String(text).split('\n')
+      const lines = Array.isArray(pool) ? pool : String(pool).split('\n')
       const start = Math.floor(Math.random() * lines.length)
       let selected = start
       for (let i = 0; i < lines.length; i++) {
@@ -1432,7 +1543,6 @@
     },
 
     startNight(excludedIds, notice) {
-      const self = this
       const excluded = excludedIds || []
       this.loading = true
       this.loadingText = '正在准备夜晚…'
@@ -1476,58 +1586,17 @@
       }
 
       const useHotel = outcome.id === 'hotel'
-      this.loadingText = useHotel ? '正在准备酒店…' : '正在准备夜晚…'
-
-      function enterNight(data) {
-        if (useHotel) HOTEL_DATA = data
-        else CURRENT_SCENE = data
-
-        self.phase = 'night'
-        self.round = 1
-        self.maxRounds = 10
-        self.counter = '1 / 10'
-        self.usedKeys = []
-        self.currentAction = ''
-        self.dayComplete = false
-        self.daySummary = ''
-        self.affectionSummary = ''
-        self.loading = false
-        self.loadError = false
-
-        if (useHotel) {
-          self.nightKind = 'hotel'
-          self.nightSourceId = 'hotel'
-          self.nightLabel = '酒店'
-        } else if (outcome.id === 'her_home') {
-          self.nightKind = 'call'
-          self.nightSourceId = 'home'
-          self.nightLabel = '电话陪伴'
-        } else {
-          self.nightKind = 'home'
-          self.nightSourceId = 'home'
-          self.nightLabel = outcome.id === 'her_empty' ? '她的家' : '你的家'
-        }
-
-        self.updateAffectionDisplay()
-        self.addRound('', outcomeLine, notice || '', '', '')
-        self.buildActions()
-        self.saveGame()
-      }
-
-      function failNight() {
-        self.loading = true
-        self.loadError = true
-        self.loadingText = '夜晚加载失败'
-      }
-
-      let nightData = null
-      try {
-        nightData = useHotel ? decodeHotel() : decodeScene('home')
-      } catch (error) {
-        nightData = null
-      }
-      if (nightData) enterNight(nightData)
-      else failNight()
+      this.openLoader(
+        useHotel ? 'hotel' : 'home',
+        {
+          kind: 'night',
+          outcome: outcome,
+          outcomeLine: outcomeLine,
+          notice: notice || '',
+          useHotel: useHotel
+        },
+        useHotel ? '正在准备酒店…' : '正在准备夜晚…'
+      )
     },
 
     retryLoad() {

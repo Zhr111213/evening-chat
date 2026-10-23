@@ -7,8 +7,8 @@
       "name": "blueos.storage.storage"
     }
   ],
-  "versionName": "1.2.2",
-  "versionCode": 7,
+  "versionName": "1.3.1",
+  "versionCode": 9,
   "appCategory": [
     "games"
   ],
@@ -27,6 +27,42 @@
     "entry": "pages/Home",
     "pages": {
       "pages/Home": {
+        "component": "index"
+      },
+      "pages/LoaderReaction": {
+        "component": "index"
+      },
+      "pages/LoaderPark": {
+        "component": "index"
+      },
+      "pages/LoaderCafe": {
+        "component": "index"
+      },
+      "pages/LoaderCinema": {
+        "component": "index"
+      },
+      "pages/LoaderSeaside": {
+        "component": "index"
+      },
+      "pages/LoaderMarket": {
+        "component": "index"
+      },
+      "pages/LoaderBookstore": {
+        "component": "index"
+      },
+      "pages/LoaderBusstop": {
+        "component": "index"
+      },
+      "pages/LoaderMall": {
+        "component": "index"
+      },
+      "pages/LoaderHome": {
+        "component": "index"
+      },
+      "pages/LoaderRiverside": {
+        "component": "index"
+      },
+      "pages/LoaderHotel": {
         "component": "index"
       }
     }

@@ -8,11 +8,13 @@ const sceneRoot = path.join(dataRoot, "scenes");
 const contentRoot = path.join(projectRoot, "content");
 const assetRoot = path.join(projectRoot, "src", "assets", "story");
 const assetSceneRoot = path.join(assetRoot, "scenes");
+const scenePageRoot = path.join(dataRoot, "scene_pages");
 
 fs.mkdirSync(sceneRoot, { recursive: true });
 fs.mkdirSync(path.join(contentRoot, "scenes"), { recursive: true });
 fs.mkdirSync(path.join(contentRoot, "tones"), { recursive: true });
 fs.mkdirSync(assetSceneRoot, { recursive: true });
+fs.mkdirSync(scenePageRoot, { recursive: true });
 
 const scenes = [
   { id: "park", name: "公园" },
@@ -1045,6 +1047,7 @@ const compressedScenes = {};
 for (const scene of scenes) {
   const contexts = sceneContexts.map((item) => fillScene(item, scene.name));
   const pools = {};
+  const poolArrays = {};
   const sceneTextLines = [];
 
   for (const action of actions) {
@@ -1058,6 +1061,7 @@ for (const scene of scenes) {
       throw new Error(`${scene.id}/${action.id} expected 150 lines, got ${poolLines.length}`);
     }
     pools[action.id] = toBlob(poolLines);
+    poolArrays[action.id] = poolLines.slice();
     allSentences.push(...poolLines);
     sceneTextLines.push(...poolLines);
     manifest.scenePoolLines += poolLines.length;
@@ -1088,6 +1092,7 @@ for (const scene of scenes) {
   }
 
   const tonePools = {};
+  const toneChunks = {};
   const compressedTonePools = {};
   const toneTextLines = [];
   for (const band of TONE_BANDS) {
@@ -1101,8 +1106,10 @@ for (const scene of scenes) {
       throw new Error(`${scene.id}/${band} expected 560 tone lines, got ${lines.length}`);
     }
     tonePools[band] = toBlob(lines);
+    toneChunks[band] = [];
     compressedTonePools[band] = [];
     for (let i = 0; i < lines.length; i += 140) {
+      toneChunks[band].push(lines.slice(i, i + 140));
       compressedTonePools[band].push(
         LZString.compressToEncodedURIComponent(lines.slice(i, i + 140).join("\n"))
       );
@@ -1124,6 +1131,18 @@ for (const scene of scenes) {
     transitions: toBlob(transitionLines),
     tones: tonePools
   };
+  const scenePageData = {
+    id: scene.id,
+    name: scene.name,
+    open: ambientLines[0],
+    pools: poolArrays,
+    tones: toneChunks,
+    transitions: transitionLines
+  };
+  writeModule(
+    path.join(scenePageRoot, `${scene.id}.js`),
+    `export default ${JSON.stringify(LZString.compressToEncodedURIComponent(JSON.stringify(scenePageData)))}\n`
+  );
 
   // 手表运行时只读取这个紧凑文本文件，按“行为池 / 环境句 / 过渡句”固定顺序切分。
   const sceneAssetText = sceneTextLines.concat(transitionLines).join("\n") + "\n";
@@ -1161,6 +1180,7 @@ for (const scene of scenes) {
 }
 
 const hotelData = { pools: {}, ambient: "" };
+const hotelPoolArrays = {};
 const hotelTextLines = [];
 for (const action of hotelActions) {
   const contexts = hotelContexts[action.group];
@@ -1174,6 +1194,7 @@ for (const action of hotelActions) {
     throw new Error(`${action.id} expected 65 lines, got ${poolLines.length}`);
   }
   hotelData.pools[action.id] = toBlob(poolLines);
+  hotelPoolArrays[action.id] = poolLines.slice();
   allSentences.push(...poolLines);
   hotelTextLines.push(...poolLines);
   manifest.hotelLines += poolLines.length;
@@ -1183,6 +1204,15 @@ hotelData.ambient = toBlob(hotelAmbient);
 allSentences.push(...hotelAmbient);
 hotelTextLines.push(...hotelAmbient);
 manifest.hotelLines += hotelAmbient.length;
+const hotelPageData = {
+  kind: "hotel",
+  pools: hotelPoolArrays,
+  ambient: hotelAmbient.slice()
+};
+writeModule(
+  path.join(dataRoot, "hotel_page.js"),
+  `export default ${JSON.stringify(LZString.compressToEncodedURIComponent(JSON.stringify(hotelPageData)))}\n`
+);
 
 const hotelAssetText = hotelTextLines.join("\n") + "\n";
 fs.writeFileSync(path.join(assetRoot, "hotel.txt"), hotelAssetText, "utf8");
@@ -1204,12 +1234,14 @@ fs.writeFileSync(path.join(contentRoot, "hotel.txt"), hotelTextLines.join("\n") 
 
 const riskyReactionTextLines = [];
 const reactionPools = {};
+const reactionArrays = {};
 for (const actionId of riskyActions) {
   const action = actions.find((item) => item.id === actionId);
   if (!action) {
     throw new Error(`Unknown risky action: ${actionId}`);
   }
   reactionPools[actionId] = {};
+  reactionArrays[actionId] = {};
   for (const band of TONE_BANDS) {
     const responses =
       specialRiskyResponses[actionId] && specialRiskyResponses[actionId][band]
@@ -1226,6 +1258,7 @@ for (const actionId of riskyActions) {
       throw new Error(`${actionId}/${band} expected 35 reaction lines, got ${lines.length}`);
     }
     reactionPools[actionId][band] = toBlob(lines);
+    reactionArrays[actionId][band] = lines.slice();
     riskyReactionTextLines.push(...lines);
     allSentences.push(...lines);
     manifest.riskyReactionLines += lines.length;
@@ -1246,6 +1279,151 @@ fs.writeFileSync(
   riskyReactionTextLines.join("\n") + "\n",
   "utf8"
 );
+const reactionPageData = {
+  version: 1,
+  ids: riskyActions.slice(),
+  bands: TONE_BANDS.slice(),
+  pools: riskyActions.map((actionId) =>
+    TONE_BANDS.map((band) => reactionArrays[actionId][band])
+  )
+};
+writeModule(
+  path.join(dataRoot, "reaction_page.js"),
+  `export default ${JSON.stringify(
+    LZString.compressToEncodedURIComponent(JSON.stringify(reactionPageData))
+  )}\n`
+);
+
+const loaderTemplate = (dataImport) => `<template>
+  <div class="loader">
+    <text class="loader-text">正在加载…</text>
+  </div>
+</template>
+
+<style>
+  .loader {
+    width: 432px;
+    height: 514px;
+    background-color: #121018;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .loader-text {
+    color: #ffb3bf;
+    font-size: 20px;
+  }
+</style>
+
+<script>
+  import RAW from '${dataImport}'
+  import LZString from '../../utils/lz-string.js'
+  const router = require('@blueos.app.appmanager.router')
+  const SCENE_TRANSFER_KEY = 'evening_chat_scene_transfer_v1'
+  let persistentStorage = null
+  try {
+    persistentStorage = require('@blueos.storage.storage')
+  } catch (error) {
+    persistentStorage = null
+  }
+  const root = typeof global !== 'undefined' ? global : {}
+
+  export default {
+    onInit() {
+      try {
+        const text = LZString.decompressFromEncodedURIComponent(RAW)
+        root.__EVENING_PENDING_SCENE__ = text ? JSON.parse(text) : null
+        if (text && persistentStorage) {
+          persistentStorage.set({ key: SCENE_TRANSFER_KEY, value: text })
+        }
+      } catch (error) {
+        root.__EVENING_PENDING_SCENE__ = null
+      }
+      setTimeout(function () {
+        router.back()
+      }, 30)
+    }
+  }
+</script>
+`;
+
+const reactionLoaderSource = `<template>
+  <div class="loader">
+    <text class="loader-text">正在准备对话…</text>
+  </div>
+</template>
+
+<style>
+  .loader {
+    width: 432px;
+    height: 514px;
+    background-color: #121018;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .loader-text {
+    color: #ffb3bf;
+    font-size: 20px;
+  }
+</style>
+
+<script>
+  import RAW from '../../data/reaction_page.js'
+  import LZString from '../../utils/lz-string.js'
+  const router = require('@blueos.app.appmanager.router')
+  const REACTION_TRANSFER_KEY = 'evening_chat_reaction_cache_v1'
+  let persistentStorage = null
+  try {
+    persistentStorage = require('@blueos.storage.storage')
+  } catch (error) {
+    persistentStorage = null
+  }
+  const root = typeof global !== 'undefined' ? global : {}
+
+  export default {
+    onInit() {
+      let text = ''
+      try {
+        text = LZString.decompressFromEncodedURIComponent(RAW)
+        root.__EVENING_REACTION_DATA__ = text ? JSON.parse(text) : null
+        if (text && persistentStorage) {
+          persistentStorage.set({ key: REACTION_TRANSFER_KEY, value: text })
+        }
+      } catch (error) {
+        root.__EVENING_REACTION_DATA__ = null
+      }
+      const target = root.__EVENING_LOADER_TARGET__ || 'LoaderPark'
+      setTimeout(function () {
+        router.replace({ uri: '/pages/' + target })
+      }, 30)
+    }
+  }
+</script>
+`;
+
+function pageNameForScene(id) {
+  return "Loader" + id.charAt(0).toUpperCase() + id.slice(1);
+}
+
+for (const scene of scenes) {
+  const pageName = pageNameForScene(scene.id);
+  const pageDir = path.join(projectRoot, "src", "pages", pageName);
+  fs.mkdirSync(pageDir, { recursive: true });
+  writeModule(
+    path.join(pageDir, "index.ux"),
+    loaderTemplate(`../../data/scene_pages/${scene.id}.js`)
+  );
+}
+const hotelLoaderDir = path.join(projectRoot, "src", "pages", "LoaderHotel");
+fs.mkdirSync(hotelLoaderDir, { recursive: true });
+writeModule(
+  path.join(hotelLoaderDir, "index.ux"),
+  loaderTemplate("../../data/hotel_page.js")
+);
+const reactionLoaderDir = path.join(projectRoot, "src", "pages", "LoaderReaction");
+fs.mkdirSync(reactionLoaderDir, { recursive: true });
+writeModule(path.join(reactionLoaderDir, "index.ux"), reactionLoaderSource);
 
 const nightLines = [];
 for (const outcome of nightOutcomes) {
@@ -1380,11 +1558,6 @@ export default {
 `;
 
 writeModule(path.join(dataRoot, "story_meta.js"), metaSource);
-
-writeModule(
-  path.join(dataRoot, "scene_compressed.js"),
-  `// 由 tools/generate_story_data.js 生成。进入场景时只解压当前场景。\nexport default ${JSON.stringify(compressedScenes)}\n`
-);
 
 writeModule(path.join(contentRoot, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
 
